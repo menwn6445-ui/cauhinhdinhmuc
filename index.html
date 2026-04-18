@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab Standard Hub</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{--bg:#f5efe6;--card:#fffdfa;--line:#d9ddd8;--ink:#1d2d2b;--muted:#64706b;--brand:#0f766e;--brand2:#14532d;--warn:#a16207;--danger:#b42318;--ok:#166534}
+    *{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#faf5ee,#edf7f3)}
+    button,input,select{font:inherit}#app{min-height:100vh}.wrap{max-width:1400px;margin:0 auto;padding:24px}
+    .login{min-height:100vh;display:grid;place-items:center;padding:24px}.login-card{display:grid;grid-template-columns:1.2fr .9fr;width:min(1000px,100%);background:var(--card);border:1px solid #fff;border-radius:28px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.08)}
+    .hero{padding:32px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}.hero h1{font-size:48px;line-height:.95;margin:0 0 16px}.hero p{line-height:1.7;color:rgba(255,255,255,.85)}.form{padding:32px;display:grid;gap:14px;align-content:center}
+    .input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}.btn{border:0;border-radius:14px;padding:12px 16px;cursor:pointer;font-weight:700}.btn-primary{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}.btn-ghost{background:#fff;border:1px solid var(--line)}.btn-danger{background:#fff1f2;color:var(--danger);border:1px solid #fecdd3}
+    .top{display:grid;grid-template-columns:1.5fr .8fr;gap:18px;margin-bottom:20px}.hero-app,.side{background:var(--card);border:1px solid #fff;border-radius:24px;box-shadow:0 20px 40px rgba(0,0,0,.06)}.hero-app{padding:28px;background:linear-gradient(135deg,rgba(15,118,110,.94),rgba(20,83,45,.92));color:#fff}.hero-app h1{font-size:42px;line-height:1;margin:0 0 14px}.hero-app p{line-height:1.7;color:rgba(255,255,255,.86)}.side{padding:22px}
+    .badges,.tabs,.tools{display:flex;flex-wrap:wrap;gap:10px}.badge{padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.2);font-size:13px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.stat{background:rgba(255,255,255,.14);padding:14px;border-radius:18px}.stat b{display:block;font-size:24px;margin-top:6px}
+    .layout{display:grid;grid-template-columns:220px 1fr;gap:18px}.nav{position:sticky;top:12px;background:rgba(255,255,255,.72);backdrop-filter:blur(8px);border-radius:22px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,.05)}.nav button{width:100%;text-align:left;margin-bottom:8px;padding:12px 14px;border:0;background:transparent;border-radius:14px;cursor:pointer;font-weight:700}.nav button.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+    .content{display:grid;gap:16px}.card{background:rgba(255,253,250,.9);border:1px solid #fff;border-radius:24px;box-shadow:0 18px 34px rgba(0,0,0,.05);padding:20px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{padding:18px;border-radius:20px;background:#fff;border:1px solid #eef0eb}.metric small{color:var(--muted);display:block}.metric b{font-size:30px;display:block;margin-top:8px}
+    .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.field{display:grid;gap:8px}.muted{color:var(--muted);line-height:1.6}.pill{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}.pill-ok{background:#ecfdf3;color:var(--ok)}.pill-warn{background:#fff7e6;color:var(--warn)}.pill-danger{background:#fff1f2;color:var(--danger)}.pill-info{background:#ecfeff;color:#0f5b57}
+    .table-wrap{overflow:auto;border-radius:20px;border:1px solid #eef0eb}.table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}.table th,.table td{padding:12px 14px;border-bottom:1px solid #eef0eb;text-align:left;vertical-align:top}.table th{background:#f4f8f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+    .inline{padding:9px 10px;border-radius:12px;border:1px solid #dfe5e0;width:100%;background:#fff}.std-table{table-layout:fixed}.std-col-stt{width:56px}.std-col-material{width:36%}.std-col-code{width:18%}.std-col-unit{width:120px}.std-col-amount{width:150px}.std-col-action{width:90px}.std-material-cell{white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-material-preview{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.35;white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-unit-input{max-width:110px}.std-amount-input{max-width:130px}.log{display:grid;gap:10px}.log-item{padding:14px;border:1px solid #eef0eb;border-radius:18px;background:#fff}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed #dce3dd;border-radius:18px}.chart{min-height:300px}
+    @media (max-width:1100px){.top,.layout,.metrics,.grid2,.login-card{grid-template-columns:1fr}.nav{position:static}} @media (max-width:640px){.wrap,.login{padding:14px}.stats{grid-template-columns:1fr}}
+  </style>
+</head>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+const supabaseClient = supabase.createClient(
+  'https://ylccflccjktknjdsefcf.supabase.co',
+  'sb_publishable_RU12Pk5Im5rhIDPcH09LpA_pEiFAZQY'
+);
+</script>
+<body>
+  <div id="app"></div>
+  <script>
+    const KEY = "lab-standard-hub-v2";
+    const USERS = [
+      {u:"admin",p:"admin123",role:"admin",label:"Admin"},
+      {u:"HS",p:"123",role:"group",label:"HS"},
+      {u:"vi sinh",p:"123",role:"group",label:"vi sinh"},
+      {u:"SHPT",p:"123",role:"group",label:"SHPT"},
+      {u:"GPB",p:"123",role:"group",label:"GPB"},
+      {u:"HH",p:"123",role:"group",label:"HH"}
+    ];
+    const NAV = [["dashboard","Dashboard"],["catalog","Danh muc"],["standards","Dinh muc"],["consumption","Tieu hao"],["inventory","Kho"],["reports","Bao cao"]];
+
+    const app = {
+      db: null,
+      user: null,
+      view: "dashboard",
+      catalog: "machines",
+      report: "trend",
+      charts: {},
+      temp: {
+        consumptionDate: new Date().toISOString().slice(0,10),
+        start: new Date(Date.now()-29*86400000).toISOString().slice(0,10),
+        end: new Date().toISOString().slice(0,10),
+        search: {machines:"",tests:"",materials:"",standards:"",stdMachinePick:"",stdTestPick:"",stdCopyPair:"",inventory:"",txns:"",history:""},
+        filters: {testsGroup:"all",standardsTest:"all",stdCfgMachine:"",stdCfgTest:"",inventoryStatus:"all",reportsGroup:"all",reportsMachine:"all",reportsTest:"all"},
+        stdEditor: {machineCode:"",testCode:"",rows:[]},
+        reportAdvanced: {simTest:"",simMachine:"",simFrom:"",simTo:"",simQty:1,simFixedMonthly:0,batchInput:"",batchMonths:1,batchFixedMonthly:0,batchResult:null},
+        sorting: {
+          machines:{key:"code",dir:"asc"},
+          tests:{key:"code",dir:"asc"},
+          materials:{key:"code",dir:"asc"},
+          standards:{key:"testCode",dir:"asc"},
+          inventory:{key:"code",dir:"asc"},
+          txns:{key:"date",dir:"desc"},
+          history:{key:"date",dir:"desc"}
+        },
+        selected: {
+          machines:new Set(),
+          tests:new Set(),
+          materials:new Set(),
+          standards:new Set(),
+          inventory:new Set(),
+          txns:new Set(),
+          history:new Set()
+        },
+        editing: {machines:null,tests:null,materials:null}
+      }
+    };
+
+    const id = p => p + "_" + Math.random().toString(36).slice(2,9);
+    const money = v => new Intl.NumberFormat("vi-VN",{style:"currency",currency:"VND",maximumFractionDigits:0}).format(v||0);
+    const num = v => new Intl.NumberFormat("vi-VN").format(v||0);
+    const esc = s => String(s??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;");
+    const day = n => { const d = new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+    const clone = o => JSON.parse(JSON.stringify(o));
+    const normalize = s => String(s??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim();
+
+    function seed(){
+      return {
+        metadata:{lowDays:7,expiryDays:45},
+        machines:[
+          {id:id("m"),code:"M-HS01",name:"Cobas 6000",group:"HS"},
+          {id:id("m"),code:"M-HS02",name:"AU5800",group:"HS"},
+          {id:id("m"),code:"M-VS01",name:"Bactec FX",group:"vi sinh"},
+          {id:id("m"),code:"M-SH01",name:"CFX96",group:"SHPT"},
+          {id:id("m"),code:"M-GPB01",name:"Ventana Benchmark",group:"GPB"},
+          {id:id("m"),code:"M-HH01",name:"XN-1000",group:"HH"}
+        ],
+        tests:[
+          {id:id("t"),code:"XN-GLU",name:"Glucose",group:"HS",price:25000,machines:["M-HS01","M-HS02"]},
+          {id:id("t"),code:"XN-AST",name:"AST",group:"HS",price:35000,machines:["M-HS01"]},
+          {id:id("t"),code:"XN-CUL",name:"Cay mau",group:"vi sinh",price:180000,machines:["M-VS01"]},
+          {id:id("t"),code:"XN-PCR",name:"PCR dinh luong",group:"SHPT",price:320000,machines:["M-SH01"]},
+          {id:id("t"),code:"XN-IHC",name:"IHC",group:"GPB",price:420000,machines:["M-GPB01"]},
+          {id:id("t"),code:"XN-CBC",name:"Cong thuc mau",group:"HH",price:55000,machines:["M-HH01"]}
+        ],
+        materials:[
+          {id:id("v"),code:"VT-GLU",name:"Thuoc thu Glucose",unit:"ml",trade:"Glucose Reagent",supplier:"Roche",country:"Duc",brand:"Roche",pack:"500 ml/chai",price:3800},
+          {id:id("v"),code:"VT-CAL",name:"Calibrator hoa sinh",unit:"lo",trade:"Calib HS",supplier:"Roche",country:"Duc",brand:"Roche",pack:"1 lo",price:450000},
+          {id:id("v"),code:"VT-BACT",name:"Chai cay mau",unit:"chai",trade:"Bactec Plus",supplier:"BD",country:"My",brand:"BD",pack:"10 chai/hop",price:95000},
+          {id:id("v"),code:"VT-PCR",name:"PCR Master Mix",unit:"reaction",trade:"PCR Mix",supplier:"Thermo",country:"My",brand:"Thermo",pack:"100 reaction",price:65000},
+          {id:id("v"),code:"VT-AB",name:"Khang the IHC",unit:"slide",trade:"IHC Antibody",supplier:"Ventana",country:"Thuy Si",brand:"Ventana",pack:"50 slide",price:92000},
+          {id:id("v"),code:"VT-CBC",name:"Dung dich ly giai",unit:"ml",trade:"Lysing",supplier:"Sysmex",country:"Nhat",brand:"Sysmex",pack:"1 lit",price:1200},
+          {id:id("v"),code:"VT-QC",name:"QC da thong so",unit:"lo",trade:"QC Serum",supplier:"BioRad",country:"My",brand:"BioRad",pack:"1 lo",price:380000}
+        ],
+        standards:[
+          {id:id("s"),machineCode:"M-HS01",testCode:"XN-GLU",materialCode:"VT-GLU",unit:"ml",amount:.8},
+          {id:id("s"),machineCode:"M-HS01",testCode:"XN-GLU",materialCode:"VT-CAL",unit:"lo",amount:.01},
+          {id:id("s"),machineCode:"M-HS01",testCode:"XN-AST",materialCode:"VT-QC",unit:"lo",amount:.02},
+          {id:id("s"),machineCode:"M-VS01",testCode:"XN-CUL",materialCode:"VT-BACT",unit:"chai",amount:1},
+          {id:id("s"),machineCode:"M-SH01",testCode:"XN-PCR",materialCode:"VT-PCR",unit:"reaction",amount:1},
+          {id:id("s"),machineCode:"M-GPB01",testCode:"XN-IHC",materialCode:"VT-AB",unit:"slide",amount:1},
+          {id:id("s"),machineCode:"M-HH01",testCode:"XN-CBC",materialCode:"VT-CBC",unit:"ml",amount:.6},
+          {id:id("s"),machineCode:"M-HH01",testCode:"XN-CBC",materialCode:"VT-QC",unit:"lo",amount:.01}
+        ],
+        lots:[
+          {id:id("l"),materialCode:"VT-GLU",lotNo:"LOT-GLU-2401",expiryDate:day(110),qty:900,unit:"ml",receivedDate:day(-20),note:"Kho HS"},
+          {id:id("l"),materialCode:"VT-CAL",lotNo:"LOT-CAL-2401",expiryDate:day(35),qty:3,unit:"lo",receivedDate:day(-12),note:"Kho HS"},
+          {id:id("l"),materialCode:"VT-BACT",lotNo:"LOT-BACT-2402",expiryDate:day(70),qty:28,unit:"chai",receivedDate:day(-10),note:"Kho VS"},
+          {id:id("l"),materialCode:"VT-PCR",lotNo:"LOT-PCR-2403",expiryDate:day(95),qty:220,unit:"reaction",receivedDate:day(-16),note:"Kho SHPT"},
+          {id:id("l"),materialCode:"VT-AB",lotNo:"LOT-IHC-2401",expiryDate:day(50),qty:26,unit:"slide",receivedDate:day(-9),note:"Kho GPB"},
+          {id:id("l"),materialCode:"VT-CBC",lotNo:"LOT-CBC-2404",expiryDate:day(18),qty:120,unit:"ml",receivedDate:day(-5),note:"Kho HH"},
+          {id:id("l"),materialCode:"VT-QC",lotNo:"LOT-QC-2401",expiryDate:day(28),qty:4,unit:"lo",receivedDate:day(-14),note:"Kho QC"}
+        ],
+        txns:[
+          {id:id("x"),type:"IN",date:day(-20),materialCode:"VT-GLU",lotNo:"LOT-GLU-2401",qty:900,note:"Nhap dau ky",actor:"admin"},
+          {id:id("x"),type:"IN",date:day(-12),materialCode:"VT-CAL",lotNo:"LOT-CAL-2401",qty:3,note:"Nhap dau ky",actor:"admin"},
+          {id:id("x"),type:"IN",date:day(-10),materialCode:"VT-BACT",lotNo:"LOT-BACT-2402",qty:28,note:"Nhap dau ky",actor:"admin"}
+        ],
+        history:[
+          {id:id("h"),date:day(-6),testCode:"XN-GLU",qty:82,machineCode:"M-HS01",group:"HS",totalCost:249528,actor:"HS"},
+          {id:id("h"),date:day(-5),testCode:"XN-CUL",qty:12,machineCode:"M-VS01",group:"vi sinh",totalCost:1140000,actor:"vi sinh"},
+          {id:id("h"),date:day(-4),testCode:"XN-CBC",qty:150,machineCode:"M-HH01",group:"HH",totalCost:122400,actor:"HH"},
+          {id:id("h"),date:day(-3),testCode:"XN-PCR",qty:18,machineCode:"M-SH01",group:"SHPT",totalCost:1170000,actor:"SHPT"},
+          {id:id("h"),date:day(-2),testCode:"XN-IHC",qty:10,machineCode:"M-GPB01",group:"GPB",totalCost:920000,actor:"GPB"},
+          {id:id("h"),date:day(-1),testCode:"XN-GLU",qty:96,machineCode:"M-HS02",group:"HS",totalCost:291840,actor:"HS"},
+          {id:id("h"),date:day(0),testCode:"XN-CBC",qty:142,machineCode:"M-HH01",group:"HH",totalCost:116640,actor:"HH"}
+        ]
+      };
+    }
+
+async function load(){
+  const { data } = await supabaseClient
+    .from('lab_data')
+    .select('*')
+    .eq('id', 1)
+    .single();
+
+  if (data) {
+    app.db = data.payload;
+  } else {
+    app.db = seed();
+    await save();
+  }
+}
+
+async function save(){
+  await supabaseClient
+    .from('lab_data')
+    .upsert({
+      id: 1,
+      payload: app.db
+    });
+}
+    function userGroup(){ return app.user?.role === "admin" ? null : app.user?.u; }
+    function account(u){ return USERS.find(x => x.u.toLowerCase() === String(u||"").trim().toLowerCase()); }
+    function material(c){ return app.db.materials.find(x => x.code === c); }
+    function machine(c){ return app.db.machines.find(x => x.code === c); }
+    function test(c){ return app.db.tests.find(x => x.code === c); }
+    function visibleTests(){ return app.user.role === "admin" ? app.db.tests : app.db.tests.filter(x => normalize(x.group) === normalize(userGroup())); }
+    function visibleMachines(){ return app.user.role === "admin" ? app.db.machines : app.db.machines.filter(x => normalize(x.group) === normalize(userGroup())); }
+    function visibleHistory(){ return app.user.role === "admin" ? app.db.history : app.db.history.filter(x => normalize(x.group) === normalize(userGroup())); }
+    function visibleStandards(){ const set = new Set(visibleTests().map(x => x.code)); return app.db.standards.filter(x => set.has(x.testCode)); }
+
+    function stockSummary(){
+      return app.db.materials.map(m => {
+        const lots = app.db.lots.filter(x => x.materialCode === m.code);
+        return {...m, stock: lots.reduce((s,x)=>s+Number(x.qty||0),0), lots, nearest: lots.map(x=>x.expiryDate).sort()[0] || ""};
+      });
+    }
+
+    function usageMap(items){
+      const map = new Map();
+      items.forEach(h => {
+        app.db.standards
+          .filter(s => s.testCode === h.testCode)
+          .forEach(s => map.set(s.materialCode, (map.get(s.materialCode)||0) + Number(s.amount||0) * Number(h.qty||0)));
+      });
+      return map;
+    }
+
+    function alerts(){
+      const use = usageMap(visibleHistory());
+      const warnDate = Date.now() + Number(app.db.metadata.expiryDays||45)*86400000;
+      return stockSummary().filter(m => {
+        const avg = (use.get(m.code)||0)/30;
+        const days = avg > 0 ? m.stock/avg : 9999;
+        const expiry = m.lots.some(l => new Date(l.expiryDate).getTime() <= warnDate);
+        return days <= Number(app.db.metadata.lowDays||7) || expiry;
+      });
+    }
+
+    function filterRows(rows, term, picker){
+      const q = normalize(term);
+      if(!q) return rows;
+      return rows.filter(row => picker(row).some(v => normalize(v).includes(q)));
+    }
+
+    function uniqueValues(rows, picker){
+      return Array.from(new Set(rows.map(picker).filter(Boolean))).sort((a,b)=>String(a).localeCompare(String(b),"vi"));
+    }
+
+    function getSort(tableKey){
+      return app.temp.sorting[tableKey] || {key:"",dir:"asc"};
+    }
+
+    function setSort(tableKey, key){
+      const cur = getSort(tableKey);
+      app.temp.sorting[tableKey] = cur.key===key ? {key,dir:cur.dir==="asc"?"desc":"asc"} : {key,dir:"asc"};
+    }
+
+    function compareValues(a,b){
+      const na = Number(a), nb = Number(b);
+      const aNum = !Number.isNaN(na) && String(a).trim()!=="";
+      const bNum = !Number.isNaN(nb) && String(b).trim()!=="";
+      if(aNum && bNum) return na-nb;
+      return String(a??"").localeCompare(String(b??""),"vi",{numeric:true,sensitivity:"base"});
+    }
+
+    function sortRows(rows, tableKey, valueGetter){
+      const {key,dir} = getSort(tableKey);
+      if(!key) return rows;
+      const sorted = rows.slice().sort((r1,r2)=>compareValues(valueGetter(r1,key), valueGetter(r2,key)));
+      return dir==="desc" ? sorted.reverse() : sorted;
+    }
+
+    function selectSet(key){
+      return app.temp.selected[key] || new Set();
+    }
+
+    function clearSelection(key){
+      app.temp.selected[key] = new Set();
+    }
+
+    function toggleSelect(key,id,checked){
+      const s = selectSet(key);
+      checked ? s.add(id) : s.delete(id);
+      app.temp.selected[key] = s;
+    }
+
+    function isSelected(key,id){
+      return selectSet(key).has(id);
+    }
+
+    function selectedCount(key){
+      return selectSet(key).size;
+    }
+
+    function toggleSelectAll(key, ids, checked){
+      const s = selectSet(key);
+      ids.forEach(id => checked ? s.add(id) : s.delete(id));
+      app.temp.selected[key] = s;
+    }
+
+    function removeByIds(list, ids){
+      const set = new Set(ids);
+      return list.filter(x=>!set.has(x.id));
+    }
+
+    function sortIndicator(tableKey, key){
+      const s = getSort(tableKey);
+      if(s.key!==key) return "";
+      return s.dir==="asc" ? " ▲" : " ▼";
+    }
+
+    function currentEdit(type){
+      const editId = app.temp.editing[type];
+      if(!editId) return null;
+      return app.db[type].find(x => x.id === editId) || null;
+    }
+
+    function resetEdit(type){ app.temp.editing[type] = null; }
+
+    function codeExists(list, code, ignoreId){
+      const norm = normalize(code);
+      return list.some(x => normalize(x.code) === norm && x.id !== ignoreId);
+    }
+
+    function stockStatus(row, items){
+      const use = usageMap(items||visibleHistory());
+      const avg = (use.get(row.code)||0)/30;
+      const days = avg>0 ? row.stock/avg : 9999;
+      const near = row.lots.some(l=>new Date(l.expiryDate).getTime() <= Date.now()+Number(app.db.metadata.expiryDays||45)*86400000);
+      if(near) return {tone:"pill-danger", label:"Near expiry"};
+      if(days <= Number(app.db.metadata.lowDays||7)) return {tone:"pill-warn", label:"Low stock"};
+      return {tone:"pill-ok", label:"Stable"};
+    }
+
+    function dependencyMessage(type, row){
+      if(type === "machines"){
+        const testsRef = app.db.tests.filter(t => (t.machines||[]).includes(row.code)).length;
+        const standardsRef = app.db.standards.filter(s => s.machineCode === row.code).length;
+        const historyRef = app.db.history.filter(h => h.machineCode === row.code).length;
+        if(testsRef || standardsRef || historyRef) return `May ${row.code}: tests=${testsRef}, standards=${standardsRef}, history=${historyRef}`;
+      }
+      if(type === "tests"){
+        const standardsRef = app.db.standards.filter(s => s.testCode === row.code).length;
+        const historyRef = app.db.history.filter(h => h.testCode === row.code).length;
+        if(standardsRef || historyRef) return `Xet nghiem ${row.code}: standards=${standardsRef}, history=${historyRef}`;
+      }
+      if(type === "materials"){
+        const standardsRef = app.db.standards.filter(s => s.materialCode === row.code).length;
+        const lotsRef = app.db.lots.filter(l => l.materialCode === row.code).length;
+        const txnsRef = app.db.txns.filter(t => t.materialCode === row.code).length;
+        if(standardsRef || lotsRef || txnsRef) return `Vat tu ${row.code}: standards=${standardsRef}, lots=${lotsRef}, txns=${txnsRef}`;
+      }
+      return "";
+    }
+
+    function cascadeDeleteCatalog(type, row){
+      if(type === "machines"){
+        app.db.tests.forEach(t => t.machines = (t.machines||[]).filter(code => code!==row.code));
+        app.db.standards = app.db.standards.filter(s => s.machineCode!==row.code);
+        app.db.history = app.db.history.filter(h => h.machineCode!==row.code);
+        return;
+      }
+      if(type === "tests"){
+        app.db.standards = app.db.standards.filter(s => s.testCode!==row.code);
+        app.db.history = app.db.history.filter(h => h.testCode!==row.code);
+        return;
+      }
+      if(type === "materials"){
+        app.db.standards = app.db.standards.filter(s => s.materialCode!==row.code);
+        app.db.lots = app.db.lots.filter(l => l.materialCode!==row.code);
+        app.db.txns = app.db.txns.filter(t => t.materialCode!==row.code);
+      }
+    }
+
+    function reportHistory(){
+      if(app.temp.start && app.temp.end && app.temp.start > app.temp.end) return [];
+      return visibleHistory().filter(h => h.date >= app.temp.start && h.date <= app.temp.end);
+    }
+
+    function filteredReportHistory(){
+      let rows = reportHistory();
+      if(app.temp.filters.reportsGroup !== "all") rows = rows.filter(x => x.group === app.temp.filters.reportsGroup);
+      if(app.temp.filters.reportsMachine !== "all") rows = rows.filter(x => x.machineCode === app.temp.filters.reportsMachine);
+      if(app.temp.filters.reportsTest !== "all") rows = rows.filter(x => x.testCode === app.temp.filters.reportsTest);
+      return rows;
+    }
+
+    function trendRows(items){
+      const map = {};
+      items.forEach(h => {
+        if(!map[h.date]) map[h.date] = {date:h.date, qty:0, cost:0};
+        map[h.date].qty += Number(h.qty||0);
+        map[h.date].cost += Number(h.totalCost||0);
+      });
+      return Object.values(map).sort((a,b)=>a.date.localeCompare(b.date));
+    }
+
+    function groupCostRows(items){
+      const map = {};
+      items.forEach(h => {
+        if(!map[h.group]) map[h.group] = {group:h.group, qty:0, cost:0};
+        map[h.group].qty += Number(h.qty||0);
+        map[h.group].cost += Number(h.totalCost||0);
+      });
+      return Object.values(map).map(x => ({...x, avgCost: x.qty ? Math.round(x.cost/x.qty) : 0})).sort((a,b)=>b.cost-a.cost);
+    }
+
+    function machineAgg(items){
+      const map = {};
+      items.forEach(h => {
+        if(!map[h.machineCode]) map[h.machineCode] = {machineCode:h.machineCode,machineName:machine(h.machineCode)?.name||"",qty:0,cost:0};
+        map[h.machineCode].qty += Number(h.qty||0);
+        map[h.machineCode].cost += Number(h.totalCost||0);
+      });
+      return Object.values(map).map(x=>({...x,avgCost:x.qty?Math.round(x.cost/x.qty):0})).sort((a,b)=>b.qty-a.qty);
+    }
+
+    function materialCostRows(items){
+      return Array.from(usageMap(items).entries())
+        .map(([code,qty]) => ({materialCode:code, materialName:material(code)?.name||code, qty:Number(qty.toFixed(2)), cost:Math.round(qty*Number(material(code)?.price||0))}))
+        .sort((a,b)=>b.cost-a.cost);
+    }
+
+    function forecastRows(items){
+      const use = usageMap(items);
+      const stock = new Map(stockSummary().map(x=>[x.code,x.stock]));
+      return app.db.materials
+        .map(m => {
+          const forecast = Number(((use.get(m.code)||0) * 1.3).toFixed(2));
+          const have = Number((stock.get(m.code)||0).toFixed(2));
+          return {materialCode:m.code, materialName:m.name, unit:m.unit, forecastQty:forecast, stock:have, suggestedOrder:Math.max(0, Number((forecast-have).toFixed(2)))};
+        })
+        .filter(x => x.forecastQty > 0)
+        .sort((a,b)=>b.suggestedOrder-a.suggestedOrder);
+    }
+
+    function ensureAdvancedReportState(){
+      if(!app.temp.reportAdvanced || typeof app.temp.reportAdvanced !== "object") app.temp.reportAdvanced = {};
+      const st = app.temp.reportAdvanced;
+      if(!st.simFrom) st.simFrom = app.temp.start;
+      if(!st.simTo) st.simTo = app.temp.end;
+      if(st.simQty == null || st.simQty === "") st.simQty = 1;
+      if(st.simFixedMonthly == null || st.simFixedMonthly === "") st.simFixedMonthly = 0;
+      if(st.batchInput == null) st.batchInput = "";
+      if(st.batchMonths == null || st.batchMonths === "") st.batchMonths = 1;
+      if(st.batchFixedMonthly == null || st.batchFixedMonthly === "") st.batchFixedMonthly = 0;
+      if(!Object.prototype.hasOwnProperty.call(st, "batchResult")) st.batchResult = null;
+      return st;
+    }
+
+    function reportMachineCandidates(testCode){
+      const all = app.user ? visibleMachines() : app.db.machines;
+      if(!testCode) return all;
+      const t = test(testCode);
+      const fromTest = new Set((t?.machines||[]).map(x=>String(x)));
+      const fromStd = new Set(app.db.standards.filter(s=>s.testCode===testCode).map(s=>s.machineCode));
+      const allow = new Set([...fromTest, ...fromStd]);
+      return all.filter(m => allow.size ? allow.has(m.code) : true);
+    }
+
+    function standardsForReport(testCode, machineCode){
+      if(!testCode) return [];
+      const candidates = reportMachineCandidates(testCode);
+      const selectedMachine = machineCode && candidates.some(m=>m.code===machineCode) ? machineCode : (candidates[0]?.code||"");
+      return app.db.standards.filter(s => s.testCode===testCode && (!selectedMachine || s.machineCode===selectedMachine));
+    }
+
+    function variableCostPerTest(testCode, machineCode){
+      return Math.round(standardsForReport(testCode, machineCode).reduce((sum, s) => sum + Number(s.amount||0) * Number(material(s.materialCode)?.price||0), 0));
+    }
+
+    function simulationSummary(){
+      const st = ensureAdvancedReportState();
+      const tests = visibleTests();
+      const testCode = st.simTest && tests.some(t=>t.code===st.simTest) ? st.simTest : (tests[0]?.code||"");
+      st.simTest = testCode;
+      const machines = reportMachineCandidates(testCode);
+      const machineCode = st.simMachine && machines.some(m=>m.code===st.simMachine) ? st.simMachine : (machines[0]?.code||"");
+      st.simMachine = machineCode;
+      const qty = Math.max(0, Number(st.simQty||0));
+      const fixedMonthly = Math.max(0, Number(st.simFixedMonthly||0));
+      const from = String(st.simFrom||app.temp.start||"");
+      const to = String(st.simTo||app.temp.end||"");
+      const fromDate = from ? new Date(from) : null;
+      const toDate = to ? new Date(to) : null;
+      let months = 1;
+      if(fromDate && toDate && !Number.isNaN(fromDate.getTime()) && !Number.isNaN(toDate.getTime()) && fromDate <= toDate){
+        months = Math.max(1, (toDate.getFullYear()-fromDate.getFullYear())*12 + (toDate.getMonth()-fromDate.getMonth()) + 1);
+      }
+      const variablePerTest = variableCostPerTest(testCode, machineCode);
+      const fixedPerTest = qty>0 ? Math.round(fixedMonthly/qty) : 0;
+      const totalPerTest = variablePerTest + fixedPerTest;
+      const testObj = test(testCode);
+      const revenuePerTest = Number(testObj?.price||0);
+      const totalQty = qty * months;
+      const variableTotal = variablePerTest * totalQty;
+      const fixedTotal = fixedMonthly * months;
+      const totalCost = variableTotal + fixedTotal;
+      const revenue = revenuePerTest * totalQty;
+      const margin = revenue - totalCost;
+      const materials = standardsForReport(testCode, machineCode).map(s => {
+        const mat = material(s.materialCode);
+        const qtyTotal = Number((Number(s.amount||0) * totalQty).toFixed(4));
+        const unitPrice = Number(mat?.price||0);
+        return {materialCode:s.materialCode,materialName:mat?.name||"",unit:s.unit||mat?.unit||"",qty:qtyTotal,unitPrice,cost:Math.round(qtyTotal*unitPrice)};
+      });
+      return {testCode,machineCode,testName:testObj?.name||"",machineName:machine(machineCode)?.name||"",qty,months,totalQty,fixedMonthly,variablePerTest,fixedPerTest,totalPerTest,variableTotal,fixedTotal,totalCost,revenuePerTest,revenue,margin,materials};
+    }
+
+    function parseBatchInput(text){
+      const rows = [];
+      const errors = [];
+      String(text||"").split(/\r?\n/).forEach((raw, idx) => {
+        const line = raw.trim();
+        if(!line) return;
+        const parts = line.split(/[\t,;]+/).map(x=>x.trim()).filter(Boolean);
+        if(parts.length < 2){
+          errors.push(`Dong ${idx+1}: can it nhat Test va Qty.`);
+          return;
+        }
+        let testCode = parts[0];
+        let machineCode = "";
+        let qtyText = parts[1];
+        if(parts.length >= 3){
+          machineCode = parts[1];
+          qtyText = parts[2];
+        }
+        const qty = Number(qtyText);
+        if(Number.isNaN(qty) || qty < 0){
+          errors.push(`Dong ${idx+1}: Qty khong hop le.`);
+          return;
+        }
+        rows.push({line:idx+1,testCode,machineCode,qty});
+      });
+      return {rows, errors};
+    }
+
+    function findTestForBatchRow(row){
+      const q = normalize(row.testCode||"");
+      if(!q) return null;
+      return visibleTests().find(t => normalize(t.code)===q || normalize(t.name)===q) || null;
+    }
+
+    function buildBatchAnalysis(rows, months, fixedMonthly){
+      const safeMonths = Math.max(1, Number(months||1));
+      const safeFixed = Math.max(0, Number(fixedMonthly||0));
+      const out = [];
+      const errors = [];
+      const totalMonthlyQty = rows.reduce((s,r)=>s+Number(r.qty||0),0);
+      const fixedPerUnit = totalMonthlyQty>0 ? safeFixed/totalMonthlyQty : 0;
+      const materialMap = new Map();
+
+      rows.forEach(r => {
+        const t = findTestForBatchRow(r);
+        if(!t){
+          errors.push(`Dong ${r.line}: khong tim thay xet nghiem ${r.testCode}.`);
+          return;
+        }
+        const candidates = reportMachineCandidates(t.code);
+        const m = r.machineCode && candidates.some(x=>x.code===r.machineCode) ? r.machineCode : (candidates[0]?.code||"");
+        if(!m){
+          errors.push(`Dong ${r.line}: khong tim thay may cho ${t.code}.`);
+          return;
+        }
+        const monthlyQty = Number(r.qty||0);
+        const periodQty = monthlyQty * safeMonths;
+        const variablePerTest = variableCostPerTest(t.code, m);
+        const variableCost = variablePerTest * periodQty;
+        const fixedCost = Math.round(fixedPerUnit * periodQty);
+        const totalCost = variableCost + fixedCost;
+        const revenue = Number(t.price||0) * periodQty;
+
+        standardsForReport(t.code, m).forEach(s => {
+          const mat = material(s.materialCode);
+          const matQty = Number((Number(s.amount||0) * periodQty).toFixed(4));
+          const key = s.materialCode;
+          const cur = materialMap.get(key) || {materialCode:key,materialName:mat?.name||"",unit:s.unit||mat?.unit||"",qty:0,cost:0};
+          cur.qty = Number((cur.qty + matQty).toFixed(4));
+          cur.cost += Math.round(matQty * Number(mat?.price||0));
+          materialMap.set(key, cur);
+        });
+
+        out.push({
+          line:r.line,
+          testCode:t.code,
+          testName:t.name,
+          group:t.group,
+          machineCode:m,
+          monthlyQty,
+          periodQty,
+          price:Number(t.price||0),
+          variablePerTest,
+          variableCost,
+          fixedCost,
+          totalCost,
+          revenue,
+          margin: revenue-totalCost
+        });
+      });
+
+      const totals = out.reduce((acc,r)=>{
+        acc.monthlyQty += r.monthlyQty;
+        acc.periodQty += r.periodQty;
+        acc.variableCost += r.variableCost;
+        acc.fixedCost += r.fixedCost;
+        acc.totalCost += r.totalCost;
+        acc.revenue += r.revenue;
+        acc.margin += r.margin;
+        return acc;
+      },{monthlyQty:0,periodQty:0,variableCost:0,fixedCost:0,totalCost:0,revenue:0,margin:0});
+
+      return {months:safeMonths,fixedMonthly:safeFixed,rows:out,materials:Array.from(materialMap.values()).sort((a,b)=>b.cost-a.cost),totals,errors};
+    }
+
+    function simulationPanel(){
+      const st = ensureAdvancedReportState();
+      const tests = visibleTests();
+      const summary = simulationSummary();
+      const machines = reportMachineCandidates(summary.testCode);
+      return `<div class="card" style="margin-top:16px"><div class="tools" style="justify-content:space-between"><div><h3 style="margin:0">Simulation</h3><div class="muted">Mo phong bien phi theo xet nghiem, may va san luong.</div></div></div><div class="field-grid" style="margin-top:12px"><div class="field"><label>Test</label><select class="input" id="simTest">${tests.map(t=>`<option value="${esc(t.code)}" ${summary.testCode===t.code?"selected":""}>${esc(t.code)} - ${esc(t.name)}</option>`).join("")}</select></div><div class="field"><label>Machine</label><select class="input" id="simMachine">${machines.map(m=>`<option value="${esc(m.code)}" ${summary.machineCode===m.code?"selected":""}>${esc(m.code)} - ${esc(m.name)}</option>`).join("")}</select></div><div class="field"><label>From</label><input class="input" type="date" id="simFrom" value="${esc(st.simFrom||app.temp.start)}"></div><div class="field"><label>To</label><input class="input" type="date" id="simTo" value="${esc(st.simTo||app.temp.end)}"></div><div class="field"><label>Qty/month</label><input class="input" type="number" min="0" id="simQty" value="${esc(st.simQty)}"></div><div class="field"><label>Fixed/month</label><input class="input" type="number" min="0" id="simFixedMonthly" value="${esc(st.simFixedMonthly)}"></div></div><section class="metrics" style="margin-top:14px"><div class="metric"><small>Variable / test</small><b>${money(summary.variablePerTest)}</b></div><div class="metric"><small>Total cost / test</small><b>${money(summary.totalPerTest)}</b></div><div class="metric"><small>Total cost period</small><b>${money(summary.totalCost)}</b></div><div class="metric"><small>Margin period</small><b>${money(summary.margin)}</b></div></section><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Material</th><th>Qty period</th><th>Unit price</th><th>Cost</th></tr></thead><tbody>${summary.materials.map(r=>`<tr><td>${esc(r.materialCode)} - ${esc(r.materialName)}</td><td>${num(r.qty)} ${esc(r.unit)}</td><td>${money(r.unitPrice)}</td><td>${money(r.cost)}</td></tr>`).join("")||`<tr><td colspan="4"><div class="empty">No standards</div></td></tr>`}</tbody></table></div></div>`;
+    }
+
+    function batchPanel(){
+      const st = ensureAdvancedReportState();
+      const result = st.batchResult;
+      return `<div class="card" style="margin-top:16px"><div class="tools" style="justify-content:space-between"><div><h3 style="margin:0">Batch analysis</h3><div class="muted">Moi dong: TestCode, MachineCode (optional), Qty/thang.</div></div><div class="tools"><button class="btn btn-ghost" type="button" id="batchSample">Nap mau</button><button class="btn btn-ghost" type="button" id="batchClear">Xoa</button><button class="btn btn-primary" type="button" id="batchAnalyze">Phan tich</button></div></div><div class="field-grid" style="margin-top:12px"><div class="field" style="grid-column:1/-1"><label>Danh sach batch</label><textarea class="input" id="batchInput" rows="8" placeholder="XN-GLU, M-HS01, 120&#10;XN-CBC, M-HH01, 140">${esc(st.batchInput||"")}</textarea></div><div class="field"><label>Months</label><input class="input" type="number" min="1" id="batchMonths" value="${esc(st.batchMonths)}"></div><div class="field"><label>Fixed monthly (shared)</label><input class="input" type="number" min="0" id="batchFixedMonthly" value="${esc(st.batchFixedMonthly)}"></div><div class="field"><label>&nbsp;</label><button class="btn btn-ghost" type="button" id="exportBatchMaterials">Export materials</button></div></div>${result?`<section class="metrics" style="margin-top:14px"><div class="metric"><small>Total qty period</small><b>${num(result.totals.periodQty)}</b></div><div class="metric"><small>Total cost</small><b>${money(result.totals.totalCost)}</b></div><div class="metric"><small>Revenue</small><b>${money(result.totals.revenue)}</b></div><div class="metric"><small>Margin</small><b>${money(result.totals.margin)}</b></div></section><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Test</th><th>Machine</th><th>Qty/month</th><th>Qty period</th><th>Variable</th><th>Fixed</th><th>Total cost</th><th>Revenue</th><th>Margin</th></tr></thead><tbody>${result.rows.map(r=>`<tr><td>${esc(r.testCode)} - ${esc(r.testName)}</td><td>${esc(r.machineCode)}</td><td>${num(r.monthlyQty)}</td><td>${num(r.periodQty)}</td><td>${money(r.variableCost)}</td><td>${money(r.fixedCost)}</td><td>${money(r.totalCost)}</td><td>${money(r.revenue)}</td><td>${money(r.margin)}</td></tr>`).join("")||`<tr><td colspan="9"><div class="empty">No rows</div></td></tr>`}</tbody></table></div>`:""}${result?.errors?.length?`<div class="muted" style="margin-top:10px">${result.errors.map(e=>esc(e)).join("<br>")}</div>`:""}</div>`;
+    }
+
+    function batchMaterialExportRows(){
+      const st = ensureAdvancedReportState();
+      const rows = st.batchResult?.materials || [];
+      return rows.map(r => ({Material:r.materialCode,Name:r.materialName,Qty:r.qty,Unit:r.unit,Cost:r.cost}));
+    }
+
+    function reportSummary(items){
+      const tests = items.reduce((s,x)=>s+Number(x.qty||0),0);
+      const cost = items.reduce((s,x)=>s+Number(x.totalCost||0),0);
+      const machines = new Set(items.map(x=>x.machineCode)).size;
+      const testTypes = new Set(items.map(x=>x.testCode)).size;
+      return {tests,cost,machines,testTypes,avg:tests?Math.round(cost/tests):0};
+    }
+
+    function dashboardData(){
+      const h = visibleHistory();
+      const a = alerts();
+      const last7 = Array.from({length:7},(_,i)=>{
+        const date = day(i-6);
+        const rows = h.filter(x=>x.date===date);
+        return {date,total:rows.reduce((s,x)=>s+Number(x.qty||0),0),cost:rows.reduce((s,x)=>s+Number(x.totalCost||0),0)};
+      });
+      const groups = {};
+      h.forEach(x=>groups[x.group]=(groups[x.group]||0)+Number(x.qty||0));
+      const top = Array.from(usageMap(h).entries()).map(([code,qty])=>({m:material(code),qty})).sort((a,b)=>b.qty-a.qty).slice(0,5);
+      return {tests:h.reduce((s,x)=>s+Number(x.qty||0),0),cost:h.reduce((s,x)=>s+Number(x.totalCost||0),0),alerts:a.length,standards:visibleStandards().length,last7,groups,top};
+    }
+
+    function exportRows(name,rows){
+      if(!rows.length) return alert("No data");
+      if(window.XLSX){
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,"Data");
+        XLSX.writeFile(wb,name);
+        return;
+      }
+      const keys = Object.keys(rows[0]);
+      const csv = [keys.join(","), ...rows.map(r=>keys.map(k=>JSON.stringify(r[k]??"")).join(","))].join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+      a.download = name.replace(".xlsx",".csv");
+      a.click();
+    }
+
+    function parseFile(file, done){
+      const reader = new FileReader();
+      reader.onload = e => {
+        const wb = XLSX.read(e.target.result,{type:"array"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        done(XLSX.utils.sheet_to_json(ws,{defval:""}));
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function downloadBlob(name, text, type){
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([text],{type:type||"text/plain"}));
+      a.download = name;
+      a.click();
+    }
+
+    function exportBackupJson(){
+      const payload = {version:1, exportedAt:new Date().toISOString(), data: app.db};
+      downloadBlob(`lab_standard_hub_backup_${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload,null,2), "application/json");
+    }
+
+    function validateBackupPayload(payload){
+      const data = payload && typeof payload === "object" && payload.data && typeof payload.data === "object" ? payload.data : payload;
+      if(!data || typeof data !== "object") return {ok:false,error:"JSON khong hop le."};
+      const requiredArrays = ["machines","tests","materials","standards","lots","txns","history"];
+      for(const key of requiredArrays){
+        if(!Array.isArray(data[key])) return {ok:false,error:`Thieu hoac sai kieu truong ${key}.`};
+      }
+      if(!data.metadata || typeof data.metadata !== "object") return {ok:false,error:"Thieu metadata."};
+      return {ok:true,data};
+    }
+
+    function upsertByCode(list, item, prefix){
+      const code = String(item.code||"").trim();
+      if(!code) return;
+      const existing = list.find(x => normalize(x.code) === normalize(code));
+      if(existing){
+        Object.assign(existing, {...item, id:existing.id, code});
+      }else{
+        list.unshift({...item, id:id(prefix), code});
+      }
+    }
+
+    function upsertStandard(item){
+      const machineCode = String(item.machineCode||"").trim();
+      const testCode = String(item.testCode||"").trim();
+      const materialCode = String(item.materialCode||"").trim();
+      if(!machineCode || !testCode || !materialCode) return;
+      const existing = app.db.standards.find(x => x.machineCode===machineCode && x.testCode===testCode && x.materialCode===materialCode);
+      if(existing){
+        existing.unit = item.unit;
+        existing.amount = Number(item.amount||0);
+      }else{
+        app.db.standards.unshift({id:id("s"), machineCode, testCode, materialCode, unit:item.unit, amount:Number(item.amount||0)});
+      }
+    }
+
+    function parseQuickStandardLines(text){
+      const rows = [];
+      const errors = [];
+      String(text||"").split(/\r?\n/).forEach((raw, index) => {
+        const line = raw.trim();
+        if(!line) return;
+        const parts = line.split(/[\t,;]/).map(x=>x.trim()).filter(Boolean);
+        if(parts.length < 2){
+          errors.push(`Dong ${index+1}: thieu du lieu.`);
+          return;
+        }
+        const materialCode = parts[0];
+        const unit = parts.length >= 3 ? parts[1] : (material(materialCode)?.unit || "");
+        const amountText = parts.length >= 3 ? parts[2] : parts[1];
+        const amount = Number(amountText);
+        if(!material(materialCode)){
+          errors.push(`Dong ${index+1}: MaVatTu ${materialCode} khong ton tai.`);
+          return;
+        }
+        if(Number.isNaN(amount) || amount < 0){
+          errors.push(`Dong ${index+1}: DinhMucTieuHao khong hop le.`);
+          return;
+        }
+        rows.push({materialCode, unit, amount});
+      });
+      return {rows, errors};
+    }
+
+    function stdDraftRow(data={}){
+      const m = material(String(data.materialCode||"").trim());
+      const amount = Number(data.amount||0);
+      return {
+        draftId: data.draftId || id("sd"),
+        materialQuery: String(data.materialQuery || m?.name || "").trim(),
+        materialCode: String(data.materialCode || "").trim(),
+        unit: String(data.unit || m?.unit || "").trim(),
+        amount: Number.isNaN(amount) ? 0 : amount
+      };
+    }
+
+    function pairHasStandards(machineCode, testCode){
+      return !!(machineCode && testCode && app.db.standards.some(s=>s.machineCode===machineCode && s.testCode===testCode));
+    }
+
+    function machinePickLabel(m){
+      return `${m.code} - ${m.name}`;
+    }
+
+    function testPickLabel(t, machineCode){
+      return `${t.code} - ${t.name}${pairHasStandards(machineCode, t.code) ? " ★" : ""}`;
+    }
+
+    function testsForMachine(machineCode){
+      const tests = visibleTests();
+      if(!machineCode) return tests;
+      const mapped = tests.filter(t => (t.machines||[]).includes(machineCode));
+      const fallbackCodes = Array.from(new Set(app.db.standards.filter(s=>s.machineCode===machineCode).map(s=>s.testCode)));
+      const fallback = tests.filter(t => fallbackCodes.includes(t.code));
+      return Array.from(new Map(mapped.concat(fallback).map(t=>[t.code,t])).values());
+    }
+
+    function resolveMachinePick(value, machines){
+      const q = normalize(value);
+      if(!q) return null;
+      const exact = machines.find(m => [m.code, m.name, machinePickLabel(m)].some(x=>normalize(x)===q));
+      if(exact) return exact;
+      const matched = machines.filter(m => [m.code, m.name, machinePickLabel(m)].some(x=>normalize(x).includes(q)));
+      return matched.length===1 ? matched[0] : null;
+    }
+
+    function resolveTestPick(value, tests, machineCode){
+      const q = normalize(value);
+      if(!q) return null;
+      const exact = tests.find(t => [t.code, t.name, testPickLabel(t,machineCode)].some(x=>normalize(x)===q));
+      if(exact) return exact;
+      const matched = tests.filter(t => [t.code, t.name, testPickLabel(t,machineCode)].some(x=>normalize(x).includes(q)));
+      return matched.length===1 ? matched[0] : null;
+    }
+
+    function configuredStandardPairs(){
+      const map = new Map();
+      visibleStandards().forEach(s => {
+        const key = `${s.machineCode}||${s.testCode}`;
+        if(!map.has(key)) map.set(key,{machineCode:s.machineCode,testCode:s.testCode,count:0});
+        map.get(key).count += 1;
+      });
+      return Array.from(map.values()).sort((a,b)=>a.machineCode.localeCompare(b.machineCode,"vi") || a.testCode.localeCompare(b.testCode,"vi"));
+    }
+
+    function filterMachinePicks(machines){
+      const q = normalize(app.temp.search.stdMachinePick||"");
+      if(!q) return machines;
+      return machines.filter(m => normalize(machinePickLabel(m)).includes(q) || normalize(m.code).includes(q) || normalize(m.name).includes(q));
+    }
+
+    function filterTestPicks(tests, machineCode){
+      const q = normalize(app.temp.search.stdTestPick||"");
+      if(!q) return tests;
+      return tests.filter(t => normalize(testPickLabel(t,machineCode)).includes(q) || normalize(t.code).includes(q) || normalize(t.name).includes(q));
+    }
+
+    function filterCopySources(pairs){
+      const q = normalize(app.temp.search.stdCopyPair||"");
+      if(!q) return pairs;
+      return pairs.filter(p => {
+        const t = test(p.testCode);
+        const text = `${p.machineCode} ${p.testCode} ${t?.name||""}`;
+        return normalize(text).includes(q);
+      });
+    }
+
+    function standardsForPair(machineCode, testCode){
+      return app.db.standards
+        .filter(s => s.machineCode===machineCode && s.testCode===testCode)
+        .map(s => stdDraftRow({materialCode:s.materialCode, unit:s.unit, amount:s.amount}));
+    }
+
+    function hydrateStdEditor(machineCode, testCode){
+      const current = app.temp.stdEditor || {machineCode:"",testCode:"",rows:[]};
+      if(current.machineCode===machineCode && current.testCode===testCode) return current.rows;
+      const rows = standardsForPair(machineCode, testCode);
+      app.temp.stdEditor = {machineCode, testCode, rows: rows.length ? rows : [stdDraftRow()]};
+      return app.temp.stdEditor.rows;
+    }
+
+    function setStdEditorRows(rows, machineCode, testCode){
+      app.temp.stdEditor = {
+        machineCode: machineCode || app.temp.filters.stdCfgMachine || "",
+        testCode: testCode || app.temp.filters.stdCfgTest || "",
+        rows: rows.map(r=>stdDraftRow(r))
+      };
+    }
+
+    function resolveMaterialByQuery(query){
+      const q = normalize(query);
+      if(!q) return null;
+      const exactByCode = app.db.materials.find(m=>normalize(m.code)===q);
+      if(exactByCode) return exactByCode;
+      const exactByName = app.db.materials.find(m=>normalize(m.name)===q);
+      if(exactByName) return exactByName;
+      const exactByTrade = app.db.materials.find(m=>normalize(m.trade||"")===q);
+      if(exactByTrade) return exactByTrade;
+      const matched = app.db.materials.filter(m=>normalize(`${m.name} ${m.code} ${m.trade||""}`).includes(q));
+      return matched.length===1 ? matched[0] : null;
+    }
+
+    function buildStdConfig(){
+      const machines = visibleMachines();
+      let machineCode = app.temp.filters.stdCfgMachine || machines[0]?.code || "";
+      if(machineCode && !machines.some(m=>m.code===machineCode)) machineCode = machines[0]?.code || "";
+      if(app.temp.filters.stdCfgMachine !== machineCode) app.temp.filters.stdCfgMachine = machineCode;
+
+      const tests = testsForMachine(machineCode);
+      let testCode = app.temp.filters.stdCfgTest || tests[0]?.code || "";
+      if(testCode && !tests.some(t=>t.code===testCode)) testCode = tests[0]?.code || "";
+      if(app.temp.filters.stdCfgTest !== testCode) app.temp.filters.stdCfgTest = testCode;
+
+      const rows = machineCode && testCode ? hydrateStdEditor(machineCode, testCode) : [];
+      const configuredPairs = configuredStandardPairs();
+      const copySources = configuredPairs.filter(p => !(p.machineCode===machineCode && p.testCode===testCode));
+      const machineOptions = filterMachinePicks(machines);
+      const testOptions = filterTestPicks(tests, machineCode);
+      const copySourceOptions = filterCopySources(copySources);
+
+      return {machines,tests,machineCode,testCode,rows,copySources,configuredPairs,machineOptions,testOptions,copySourceOptions};
+    }
+
+    function loginView(){
+      return `<div class="login"><div class="login-card"><div class="hero"><div class="badges"><span class="badge">LAB Standard Hub</span><span class="badge">One file demo</span></div><h1>Lab cost and inventory cockpit.</h1><p>Login, catalog CRUD, editable standards, stock by lot, consumption calculation, reports and Excel import/export are bundled into one standalone HTML file.</p></div><form class="form" id="loginForm"><div><h2 style="margin:0 0 8px">Login</h2><div class="muted">Demo accounts: admin/admin123, HS/123, vi sinh/123, SHPT/123, GPB/123, HH/123.</div></div><div class="field"><label>Username</label><input class="input" name="u" placeholder="admin or HS"></div><div class="field"><label>Password</label><input class="input" type="password" name="p"></div><button class="btn btn-primary">Enter system</button></form></div></div>`;
+    }
+
+    function appView(){
+      const d = dashboardData();
+      return `<div class="wrap">
+        <section class="top">
+          <div class="hero-app">
+            <div class="badges"><span class="badge">User: ${esc(app.user.u)}</span><span class="badge">Role: ${esc(app.user.label)}</span><span class="badge">Storage: localStorage</span></div>
+            <h1>Manage standards, consumption and stock from one browser file.</h1>
+            <p>The app supports role-based demo accounts, KPI dashboard, machine/test/material catalogs, editable consumption standards, stock lots with expiry, history and 4 report tabs.</p>
+            <div class="stats"><div class="stat"><small>Total tests</small><b>${num(d.tests)}</b></div><div class="stat"><small>Total cost</small><b>${money(d.cost)}</b></div><div class="stat"><small>Stock alerts</small><b>${num(d.alerts)}</b></div></div>
+          </div>
+          <aside class="side"><h3 style="margin-top:0">Session</h3><div class="muted">Admin sees all data. Group accounts are scoped to their own test group.</div><div class="log" style="margin-top:14px"><div class="log-item"><b>Current user</b><div class="muted">${esc(app.user.u)} - ${esc(app.user.label)}</div></div><div class="log-item"><b>Visible scope</b><div class="muted">${app.user.role==="admin"?"All groups":"Only "+esc(app.user.u)}</div></div></div><div class="tools" style="margin-top:16px"><button class="btn btn-ghost" id="resetDb">Reload seed</button><button class="btn btn-ghost" id="backupJson">Backup JSON</button><label class="btn btn-ghost">Restore JSON<input hidden type="file" accept=".json,application/json" id="restoreJsonFile"></label><button class="btn btn-danger" id="logout">Logout</button></div></aside>
+        </section>
+        <section class="layout"><aside class="nav">${NAV.map(([k,v])=>`<button data-nav="${k}" class="${app.view===k?"active":""}">${v}</button>`).join("")}</aside><main class="content">${renderView()}</main></section>
+      </div>`;
+    }
+
+    function renderView(){
+      if(app.view === "catalog") return catalogView();
+      if(app.view === "standards") return standardsView();
+      if(app.view === "consumption") return consumptionView();
+      if(app.view === "inventory") return inventoryView();
+      if(app.view === "reports") return reportsView();
+      return dashboardView();
+    }
+
+    function dashboardView(){
+      const d = dashboardData();
+      const a = alerts();
+      return `<section class="metrics"><div class="metric"><small>Total XN</small><b>${num(d.tests)}</b></div><div class="metric"><small>Consumption cost</small><b>${money(d.cost)}</b></div><div class="metric"><small>Stock alerts</small><b>${num(d.alerts)}</b></div><div class="metric"><small>Standards</small><b>${num(d.standards)}</b></div></section>
+      <section class="grid2"><div class="card"><div class="tools" style="justify-content:space-between"><div><h3 style="margin:0">7 day trend</h3><div class="muted">Test volume by day.</div></div><span class="pill pill-info">Chart.js</span></div><div class="chart"><canvas id="dashTrend"></canvas></div></div><div class="card"><div class="tools" style="justify-content:space-between"><div><h3 style="margin:0">Group distribution</h3><div class="muted">Share by test group.</div></div></div><div class="chart"><canvas id="dashGroup"></canvas></div></div></section>
+      <section class="grid2"><div class="card"><h3 style="margin-top:0">Top materials</h3><div class="log">${d.top.length?d.top.map((x,i)=>`<div class="log-item"><b>#${i+1} ${esc(x.m?.name||x.m?.code||"")}</b><div class="muted">${esc(x.m?.code||"")} - ${num(x.qty)} ${esc(x.m?.unit||"")}</div></div>`).join(""):`<div class="empty">No data</div>`}</div></div><div class="card"><h3 style="margin-top:0">Stock alerts</h3><div class="log">${a.length?a.slice(0,6).map(x=>`<div class="log-item"><b>${esc(x.name)}</b><div class="muted">${esc(x.code)} - Stock ${num(x.stock)} ${esc(x.unit)} - Exp ${esc(x.nearest||"-")}</div></div>`).join(""):`<div class="empty">No alerts</div>`}</div></div></section>`;
+    }
+
+    function catalogView(){
+      return `<section class="card"><div class="tools" style="justify-content:space-between"><div><h2 style="margin:0">Catalog</h2><div class="muted">CRUD plus Excel import/export.</div></div><div class="tabs">${["machines","tests","materials"].map(x=>`<button class="btn ${app.catalog===x?"btn-primary":"btn-ghost"}" data-cat="${x}">${x}</button>`).join("")}</div></div>${app.catalog==="machines"?machinesTab():""}${app.catalog==="tests"?testsTab():""}${app.catalog==="materials"?materialsTab():""}</section>`;
+    }
+
+    function machinesTab(){
+      const edit = currentEdit("machines");
+      let rows = filterRows(visibleMachines(), app.temp.search.machines, x=>[x.code,x.name,x.group]);
+      rows = sortRows(rows, "machines", (r,k)=>({code:r.code,name:r.name,group:r.group}[k]));
+      const allIds = rows.map(x=>x.id);
+      const allChecked = allIds.length>0 && allIds.every(id=>isSelected("machines",id));
+      return `<div class="grid2"><form class="card" id="machineForm"><h3 style="margin-top:0">${edit?"Edit machine":"Machine"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='machines' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="machines">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="machines"></label></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search machine" data-search="machines" value="${esc(app.temp.search.machines)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMachines">Delete selected (${selectedCount("machines")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaMay, TenMay, Nhom.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="machines" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="code">Code${sortIndicator("machines","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="name">Name${sortIndicator("machines","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="group">Group${sortIndicator("machines","group")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="machines" data-id="${x.id}" ${isSelected("machines",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td><div class="tools"><button class="btn btn-ghost" data-edit="machines" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="machines" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="5"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+    }
+
+    function testsTab(){
+      const edit = currentEdit("tests");
+      const groups = uniqueValues(visibleTests(), x=>x.group);
+      let rows = visibleTests();
+      if(app.temp.filters.testsGroup !== "all") rows = rows.filter(x=>x.group===app.temp.filters.testsGroup);
+      rows = filterRows(rows, app.temp.search.tests, x=>[x.code,x.name,x.group,(x.machines||[]).join(",")]);
+      rows = sortRows(rows, "tests", (r,k)=>({code:r.code,name:r.name,group:r.group,price:r.price,machines:(r.machines||[]).join(",")}[k]));
+      const allIds = rows.map(x=>x.id);
+      const allChecked = allIds.length>0 && allIds.every(id=>isSelected("tests",id));
+      return `<div class="grid2"><form class="card" id="testForm"><h3 style="margin-top:0">${edit?"Edit test":"Test"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div><div class="field"><label>Price</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div><div class="field" style="grid-column:1/-1"><label>Machines comma separated</label><input class="input" name="machines" value="${esc((edit?.machines||[]).join(", "))}"></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='tests' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="tests">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="tests"></label></div></form><div class="card"><div class="field-grid"><div class="field"><label>Search</label><input class="input" placeholder="Search test" data-search="tests" value="${esc(app.temp.search.tests)}"></div><div class="field"><label>Group filter</label><select class="input" data-filter="testsGroup"><option value="all">All groups</option>${groups.map(g=>`<option value="${esc(g)}" ${app.temp.filters.testsGroup===g?"selected":""}>${esc(g)}</option>`).join("")}</select></div></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelTests">Delete selected (${selectedCount("tests")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaXetNghiem, TenXetNghiem, Nhom, Gia, May.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="tests" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="code">Code${sortIndicator("tests","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="name">Name${sortIndicator("tests","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="group">Group${sortIndicator("tests","group")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="price">Price${sortIndicator("tests","price")}</button></th><th>Machines</th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="tests" data-id="${x.id}" ${isSelected("tests",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td>${money(x.price)}</td><td>${esc((x.machines||[]).join(", "))}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="tests" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="tests" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="7"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+    }
+
+    function materialsTab(){
+      const edit = currentEdit("materials");
+      let rows = filterRows(app.db.materials, app.temp.search.materials, x=>[x.code,x.name,x.unit,x.trade,x.supplier,x.brand]);
+      rows = sortRows(rows, "materials", (r,k)=>({code:r.code,name:r.name,unit:r.unit,trade:r.trade,supplier:r.supplier,price:r.price}[k]));
+      const allIds = rows.map(x=>x.id);
+      const allChecked = allIds.length>0 && allIds.every(id=>isSelected("materials",id));
+      return `<div class="grid2"><form class="card" id="materialForm"><h3 style="margin-top:0">${edit?"Edit material":"Material"}</h3><div class="field-grid"><div class="field"><label>MaVatTu</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>TenVatTu</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>DonViTinh</label><input class="input" name="unit" value="${esc(edit?.unit||"")}" required></div><div class="field"><label>TenThuongMai</label><input class="input" name="trade" value="${esc(edit?.trade||"")}"></div><div class="field"><label>NhaCungCap</label><input class="input" name="supplier" value="${esc(edit?.supplier||"")}"></div><div class="field"><label>NuocSX</label><input class="input" name="country" value="${esc(edit?.country||"")}"></div><div class="field"><label>HangSX</label><input class="input" name="brand" value="${esc(edit?.brand||"")}"></div><div class="field"><label>QuyCachDongGoi</label><input class="input" name="pack" value="${esc(edit?.pack||"")}"></div><div class="field"><label>GiaTien</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='materials' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="materials">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="materials"></label></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search material" data-search="materials" value="${esc(app.temp.search.materials)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMaterials">Delete selected (${selectedCount("materials")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaVatTu, TenVatTu, DonViTinh, TenThuongMai, NhaCungCap, NuocSX, HangSX, QuyCachDongGoi, GiaTien.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="materials" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="code">MaVatTu${sortIndicator("materials","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="name">TenVatTu${sortIndicator("materials","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="unit">DonViTinh${sortIndicator("materials","unit")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="trade">TenThuongMai${sortIndicator("materials","trade")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="supplier">NhaCungCap${sortIndicator("materials","supplier")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="price">GiaTien${sortIndicator("materials","price")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="materials" data-id="${x.id}" ${isSelected("materials",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td>${esc(x.unit)}</td><td>${esc(x.trade||"")}</td><td>${esc(x.supplier||"")}</td><td>${money(x.price)}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="materials" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="materials" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="8"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+    }
+
+    function standardsView(){
+      const cfg = buildStdConfig();
+
+      const rowsHtml = cfg.rows.map((r,idx)=>{
+        return `<tr>
+          <td>${idx+1}</td>
+          <td class="std-material-cell">
+            <input class="inline" list="stdMaterialList" value="${esc(r.materialQuery)}" data-std-draft="materialQuery" data-row="${esc(r.draftId)}" placeholder="Gõ tên vật tư để tìm">
+            ${(() => {
+              const m = material(r.materialCode);
+              const materialName = r.materialQuery || m?.name || "";
+              const tradeName = m?.trade || "";
+              if(!materialName && !tradeName) return "";
+              const lines = [materialName && `<div><b>Tên vật tư:</b> ${esc(materialName)}</div>`, tradeName && `<div><b>Tên thương mại:</b> ${esc(tradeName)}</div>`].filter(Boolean).join("");
+              return `<div class="std-material-preview">${lines}</div>`;
+            })()}
+          </td>
+          <td><input class="inline" value="${esc(r.materialCode)}" data-std-draft="materialCode" data-row="${esc(r.draftId)}" readonly></td>
+          <td><input class="inline std-unit-input" value="${esc(r.unit)}" data-std-draft="unit" data-row="${esc(r.draftId)}" readonly></td>
+          <td><input class="inline std-amount-input" type="number" step="0.0001" min="0" value="${esc(r.amount)}" data-std-draft="amount" data-row="${esc(r.draftId)}"></td>
+          <td><button class="btn btn-danger" type="button" data-std-draft-remove="${esc(r.draftId)}">Xóa</button></td>
+        </tr>`;
+      }).join("") || `<tr><td colspan="6"><div class="empty">Chưa có dòng vật tư. Bấm "Add vật tư" để thêm.</div></td></tr>`;
+
+      const configuredRows = cfg.configuredPairs.map(p=>`<tr>
+        <td>${esc(p.machineCode)}</td>
+        <td>${esc(machine(p.machineCode)?.name||"")}</td>
+        <td>${esc(p.testCode)} ${pairHasStandards(p.machineCode,p.testCode)?"<span class='pill pill-ok'>Đã khai báo</span>":""}</td>
+        <td>${esc(test(p.testCode)?.name||"")}</td>
+        <td>${num(p.count)}</td>
+        <td><div class="tools"><button class="btn btn-ghost" type="button" data-std-edit-pair="${esc(`${p.machineCode}||${p.testCode}`)}">Edit định mức</button><button class="btn btn-danger" type="button" data-std-delete-pair="${esc(`${p.machineCode}||${p.testCode}`)}">Xóa cấu hình</button></div></td>
+      </tr>`).join("") || `<tr><td colspan="6"><div class="empty">Chưa có xét nghiệm nào được cấu hình định mức.</div></td></tr>`;
+
+      return `<section class="card">
+        <div class="tools" style="justify-content:space-between">
+          <div>
+            <h2 style="margin:0">Khai báo định mức</h2>
+            <div class="muted">Chọn máy -> chọn xét nghiệm -> cấu hình định mức theo từng dòng vật tư.</div>
+          </div>
+          <div class="tools">
+            <button class="btn btn-ghost" data-export="standards" type="button">Export Excel</button>
+            <label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="standards"></label>
+          </div>
+        </div>
+
+        <section class="card" style="margin-top:16px">
+          <div class="tools" style="justify-content:space-between">
+            <div>
+              <h3 style="margin:0">Chọn máy và xét nghiệm</h3>
+              <div class="muted">Xét nghiệm được lọc theo máy đã chọn trong mục khai báo.</div>
+            </div>
+          </div>
+          <div class="field-grid" style="margin-top:12px">
+            <div class="field">
+              <label>MaMayXN (search)</label>
+              <input class="input" data-search="stdMachinePick" value="${esc(app.temp.search.stdMachinePick||"")}" placeholder="Gõ để lọc máy">
+              <select class="input" id="stdMachinePick">
+                ${cfg.machineOptions.map(m=>`<option value="${esc(m.code)}" ${cfg.machineCode===m.code?"selected":""}>${esc(machinePickLabel(m))}</option>`).join("")}
+              </select>
+            </div>
+            <div class="field">
+              <label>MaXetNghiem (search)</label>
+              <input class="input" data-search="stdTestPick" value="${esc(app.temp.search.stdTestPick||"")}" placeholder="Gõ để lọc xét nghiệm">
+              <select class="input" id="stdTestPick">
+                ${cfg.testOptions.map(t=>`<option value="${esc(t.code)}" ${cfg.testCode===t.code?"selected":""}>${esc(testPickLabel(t, cfg.machineCode))}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+          <div class="muted" style="margin-top:8px">Dấu ★ là xét nghiệm đã khai báo định mức cho máy đang chọn.</div>
+        </section>
+
+        <section class="card" style="margin-top:16px">
+          <div class="tools" style="justify-content:space-between">
+            <div>
+              <h3 style="margin:0">Copy từ xét nghiệm đã khai báo</h3>
+              <div class="muted">Copy từ một cặp máy/xét nghiệm đã có định mức, sau copy vẫn sửa được trước khi lưu.</div>
+            </div>
+            <form id="copyForm" class="tools" style="margin:0">
+              <div class="field" style="min-width:320px">
+                <label>Tìm nguồn copy</label>
+                <input class="input" data-search="stdCopyPair" value="${esc(app.temp.search.stdCopyPair||"")}" placeholder="Gõ để lọc nguồn copy">
+              </div>
+              <select class="input" name="fromPair" style="min-width:340px">
+                <option value="">Chọn nguồn copy</option>
+                ${cfg.copySourceOptions.map(p=>`<option value="${esc(`${p.machineCode}||${p.testCode}`)}">${esc(p.machineCode)} | ${esc(p.testCode)} - ${esc(test(p.testCode)?.name||"")} (${num(p.count)} VT)</option>`).join("")}
+              </select>
+              <button class="btn btn-primary" type="submit">Copy</button>
+            </form>
+          </div>
+        </section>
+
+        <section class="card" style="margin-top:16px">
+          <div class="tools" style="justify-content:space-between">
+            <div>
+              <h3 style="margin:0">Bảng cấu hình định mức</h3>
+              <div class="muted">Tìm vật tư theo tên, hệ thống tự điền mã vật tư và đơn vị tính.</div>
+            </div>
+            <div class="tools">
+              <button class="btn btn-ghost" id="addStdDraft" type="button">Add vật tư</button>
+              <button class="btn btn-primary" id="saveStdConfig" type="button">Lưu cấu hình</button>
+            </div>
+          </div>
+          ${cfg.machineCode && cfg.testCode ? `
+            <datalist id="stdMaterialList">${app.db.materials
+              .slice()
+              .sort((a,b)=>String(a.name).localeCompare(String(b.name),"vi"))
+              .map(m=>`<option value="${esc(m.name)}">${esc(m.code)} | ${esc(m.trade||"-")}</option>`)
+              .join("")}</datalist>
+            <div class="table-wrap" style="margin-top:14px">
+              <table class="table std-table">
+                <colgroup>
+                  <col class="std-col-stt">
+                  <col class="std-col-material">
+                  <col class="std-col-code">
+                  <col class="std-col-unit">
+                  <col class="std-col-amount">
+                  <col class="std-col-action">
+                </colgroup>
+                <thead><tr><th>#</th><th>TenVatTu</th><th>MaVatTu</th><th>DonViTinh</th><th>DinhMucTieuHao</th><th>Xóa</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          ` : `<div class="empty" style="margin-top:12px">Vui lòng chọn máy và xét nghiệm để cấu hình định mức.</div>`}
+        </section>
+
+        <section class="card" style="margin-top:16px">
+          <div class="tools" style="justify-content:space-between">
+            <div>
+              <h3 style="margin:0">Danh sách xét nghiệm đã cấu hình định mức</h3>
+              <div class="muted">Chọn Edit định mức để nạp lại cấu hình vào form chỉnh sửa.</div>
+            </div>
+          </div>
+          <div class="table-wrap" style="margin-top:12px">
+            <table class="table">
+              <thead><tr><th>MaMayXN</th><th>TenMayXN</th><th>MaXetNghiem</th><th>TenXetNghiem</th><th>Số dòng vật tư</th><th>Action</th></tr></thead>
+              <tbody>${configuredRows}</tbody>
+            </table>
+          </div>
+        </section>
+      </section>`;
+    }
+
+    function previewConsumption(fd){
+      const testCode = fd.get("testCode");
+      const qty = Number(fd.get("qty")||0);
+      const standards = app.db.standards.filter(x => x.testCode === testCode);
+      if(!standards.length) return {rows:[],total:0,html:`<span class="pill pill-danger">No standards for this test</span>`};
+      const stock = new Map(stockSummary().map(x=>[x.code,x.stock]));
+      const rows = standards.map(s => {
+        const m = material(s.materialCode);
+        const need = Number((Number(s.amount||0)*qty).toFixed(4));
+        const have = Number((stock.get(s.materialCode)||0).toFixed(4));
+        const cost = Math.round(need*Number(m?.price||0));
+        return {materialCode:s.materialCode,materialName:m?.name||"",unit:s.unit||m?.unit||"",need,have,enough:have>=need,cost};
+      });
+      const total = rows.reduce((a,b)=>a+b.cost,0);
+      const html = `<div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Material</th><th>Need</th><th>Stock</th><th>Status</th><th>Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.materialCode)} - ${esc(r.materialName)}</td><td>${num(r.need)} ${esc(r.unit)}</td><td>${num(r.have)} ${esc(r.unit)}</td><td><span class="pill ${r.enough?"pill-ok":"pill-danger"}">${r.enough?"Enough":"Short"}</span></td><td>${money(r.cost)}</td></tr>`).join("")}</tbody></table></div><div style="margin-top:12px"><b>Total cost:</b> ${money(total)}</div>`;
+      return {rows,total,html};
+    }
+
+    function consumptionView(){
+      const tests = visibleTests();
+      const machines = visibleMachines();
+      const historyRows = filterRows(visibleHistory(), app.temp.search.history, x=>[x.testCode,test(x.testCode)?.name,x.machineCode,x.group,x.date]).slice(0,12);
+      return `<section class="grid2"><form class="card" id="consumptionForm"><div class="tools" style="justify-content:space-between"><div><h2 style="margin:0">Consumption calculator</h2><div class="muted">Input daily test volume to calculate need, stock status and cost instantly.</div></div><button class="btn btn-ghost" id="exportCalc" type="button">Export result</button></div><div class="field-grid"><div class="field"><label>Date</label><input class="input" type="date" name="date" value="${esc(app.temp.consumptionDate)}"></div><div class="field"><label>Test</label><select class="input" name="testCode">${tests.map(t=>`<option value="${t.code}">${esc(t.code)} - ${esc(t.name)}</option>`).join("")}</select></div><div class="field"><label>Machine</label><select class="input" name="machineCode">${machines.map(m=>`<option value="${m.code}">${esc(m.code)} - ${esc(m.name)}</option>`).join("")}</select></div><div class="field"><label>Quantity</label><input class="input" type="number" name="qty" min="1" value="1"></div></div><div id="calcPreview" class="muted" style="margin-top:14px">Choose test and quantity then calculate.</div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-ghost" type="button" id="previewCalc">Calculate now</button><button class="btn btn-primary">Save and deduct stock</button></div></form><div class="card"><div class="tools" style="justify-content:space-between"><h3 style="margin:0">Recent history</h3><input class="input" style="max-width:260px" data-search="history" placeholder="Search history" value="${esc(app.temp.search.history)}"></div><div class="log" style="margin-top:14px">${historyRows.length?historyRows.map(h=>`<div class="log-item"><b>${esc(h.testCode)} - ${esc(test(h.testCode)?.name||"")}</b><div class="muted">${esc(h.date)} - ${esc(h.machineCode)} - ${esc(h.group)} - ${num(h.qty)} XN</div><div class="muted">Cost: ${money(h.totalCost)}</div></div>`).join(""):`<div class="empty">No history</div>`}</div></div></section>`;
+    }
+
+    function inventoryView(){
+      const summary = stockSummary();
+      let txRows = filterRows(app.db.txns, app.temp.search.txns, x=>[x.type,x.date,x.materialCode,x.lotNo,x.note,x.actor]);
+      txRows = sortRows(txRows, "txns", (r,k)=>({date:r.date,type:r.type,materialCode:r.materialCode,lotNo:r.lotNo,qty:r.qty,actor:r.actor}[k])).slice(0,30);
+      const statusFilter = app.temp.filters.inventoryStatus;
+      let stockRows = filterRows(summary, app.temp.search.inventory, x=>[x.code,x.name,x.unit,x.supplier,x.brand,(x.lots||[]).map(l=>l.lotNo).join(",")]);
+      if(statusFilter !== "all") stockRows = stockRows.filter(s => normalize(stockStatus(s, visibleHistory()).label) === normalize(statusFilter));
+      stockRows = sortRows(stockRows, "inventory", (r,k)=>({code:r.code,name:r.name,stock:r.stock,nearest:r.nearest,unit:r.unit}[k]));
+      const txSort = getSort("txns");
+
+      return `<section class="grid2"><form class="card" id="lotForm"><h2 style="margin-top:0">Stock by lot</h2><div class="field-grid"><div class="field"><label>Material</label><select class="input" name="materialCode">${app.db.materials.map(m=>`<option value="${m.code}">${esc(m.code)} - ${esc(m.name)}</option>`).join("")}</select></div><div class="field"><label>Lot</label><input class="input" name="lotNo" required></div><div class="field"><label>Expiry</label><input class="input" type="date" name="expiryDate" required></div><div class="field"><label>Qty</label><input class="input" type="number" min="0" name="qty" required></div><div class="field"><label>Unit</label><input class="input" name="unit" required></div><div class="field"><label>Received</label><input class="input" type="date" name="receivedDate" value="${day(0)}"></div><div class="field" style="grid-column:1/-1"><label>Note</label><input class="input" name="note"></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">Nhap kho</button></div></form><div class="card"><h3 style="margin-top:0">Transactions</h3><form id="txnForm"><div class="field-grid"><div class="field"><label>Type</label><select class="input" name="type"><option value="IN">IN</option><option value="OUT">OUT</option></select></div><div class="field"><label>Date</label><input class="input" type="date" name="date" value="${day(0)}"></div><div class="field"><label>Material</label><select class="input" name="materialCode">${app.db.materials.map(m=>`<option value="${m.code}">${esc(m.code)} - ${esc(m.name)}</option>`).join("")}</select></div><div class="field"><label>Lot</label><input class="input" name="lotNo" required></div><div class="field"><label>Qty</label><input class="input" type="number" min="0" name="qty" required></div><div class="field" style="grid-column:1/-1"><label>Note</label><input class="input" name="note"></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">Save transaction</button></div></form><div class="field-grid" style="margin-top:16px"><div class="field"><label>Search transactions</label><input class="input" data-search="txns" value="${esc(app.temp.search.txns)}" placeholder="Search IN/OUT, code, lot"></div><div class="field"><label>Sort</label><select class="input" data-sort-select="txns"><option value="date:asc" ${txSort.key==="date"&&txSort.dir==="asc"?"selected":""}>Date ↑</option><option value="date:desc" ${txSort.key==="date"&&txSort.dir==="desc"?"selected":""}>Date ↓</option><option value="materialCode:asc" ${txSort.key==="materialCode"&&txSort.dir==="asc"?"selected":""}>MaVatTu ↑</option><option value="materialCode:desc" ${txSort.key==="materialCode"&&txSort.dir==="desc"?"selected":""}>MaVatTu ↓</option><option value="lotNo:asc" ${txSort.key==="lotNo"&&txSort.dir==="asc"?"selected":""}>Lot ↑</option><option value="lotNo:desc" ${txSort.key==="lotNo"&&txSort.dir==="desc"?"selected":""}>Lot ↓</option><option value="qty:asc" ${txSort.key==="qty"&&txSort.dir==="asc"?"selected":""}>Qty ↑</option><option value="qty:desc" ${txSort.key==="qty"&&txSort.dir==="desc"?"selected":""}>Qty ↓</option></select></div></div><div class="log" style="margin-top:12px">${txRows.map(t=>`<div class="log-item"><b>${t.type} - ${esc(t.materialCode)}</b><div class="muted">${esc(t.date)} - lot ${esc(t.lotNo)} - ${num(t.qty)} - ${esc(t.actor)}</div></div>`).join("")||`<div class="empty">No transaction</div>`}</div></div></section><section class="card"><div class="tools" style="justify-content:space-between"><h3 style="margin:0">Current stock and alerts</h3><div class="tools"><input class="input" style="max-width:220px" data-search="inventory" value="${esc(app.temp.search.inventory)}" placeholder="Search stock"><select class="input" data-filter="inventoryStatus" style="max-width:180px"><option value="all">All status</option><option value="Near expiry" ${app.temp.filters.inventoryStatus==="Near expiry"?"selected":""}>Near expiry</option><option value="Low stock" ${app.temp.filters.inventoryStatus==="Low stock"?"selected":""}>Low stock</option><option value="Stable" ${app.temp.filters.inventoryStatus==="Stable"?"selected":""}>Stable</option></select></div></div><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th><button class="btn btn-ghost" type="button" data-sort="inventory" data-key="code">Material${sortIndicator("inventory","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="inventory" data-key="name">Name${sortIndicator("inventory","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="inventory" data-key="stock">Stock${sortIndicator("inventory","stock")}</button></th><th>Lots</th><th><button class="btn btn-ghost" type="button" data-sort="inventory" data-key="nearest">Nearest expiry${sortIndicator("inventory","nearest")}</button></th><th>Status</th></tr></thead><tbody>${stockRows.map(s=>{const st=stockStatus(s,visibleHistory());return `<tr><td>${esc(s.code)}</td><td>${esc(s.name)}</td><td>${num(s.stock)} ${esc(s.unit)}</td><td>${esc((s.lots||[]).map(l=>l.lotNo).join(", "))}</td><td>${esc(s.nearest||"-")}</td><td><span class="pill ${st.tone}">${st.label}</span></td></tr>`;}).join("")||`<tr><td colspan="6"><div class="empty">No data</div></td></tr>`}</tbody></table></div></section>`;
+    }
+
+    function reportsView(){
+      ensureAdvancedReportState();
+      const full = reportHistory();
+      const rh = filteredReportHistory();
+      const summary = reportSummary(rh);
+      const trend = trendRows(rh);
+      const groups = uniqueValues(full, x=>x.group);
+      const machines = uniqueValues(full, x=>x.machineCode);
+      const tests = uniqueValues(full, x=>x.testCode);
+      const machineRows = machineAgg(rh);
+      const costRows = groupCostRows(rh);
+      const fcRows = forecastRows(rh);
+
+      return `<section class="card"><div class="tools" style="justify-content:space-between"><div><h2 style="margin:0">Reports</h2><div class="muted">Trend, cost, machine, forecast, simulation and batch with filters + export.</div></div><div class="tabs">${["trend","cost","machine","forecast","simulation","batch"].map(x=>`<button class="btn ${app.report===x?"btn-primary":"btn-ghost"}" data-report="${x}">${x}</button>`).join("")}</div></div><div class="field-grid" style="margin-top:14px"><div class="field"><label>From</label><input class="input" id="start" type="date" value="${esc(app.temp.start)}"></div><div class="field"><label>To</label><input class="input" id="end" type="date" value="${esc(app.temp.end)}"></div><div class="field"><label>Group</label><select class="input" data-filter="reportsGroup"><option value="all">All groups</option>${groups.map(g=>`<option value="${esc(g)}" ${app.temp.filters.reportsGroup===g?"selected":""}>${esc(g)}</option>`).join("")}</select></div><div class="field"><label>Machine</label><select class="input" data-filter="reportsMachine"><option value="all">All machines</option>${machines.map(m=>`<option value="${esc(m)}" ${app.temp.filters.reportsMachine===m?"selected":""}>${esc(m)}</option>`).join("")}</select></div><div class="field"><label>Test</label><select class="input" data-filter="reportsTest"><option value="all">All tests</option>${tests.map(t=>`<option value="${esc(t)}" ${app.temp.filters.reportsTest===t?"selected":""}>${esc(t)}</option>`).join("")}</select></div><div class="field"><label>&nbsp;</label><button class="btn btn-ghost" type="button" id="exportReport">Export active report</button></div></div><section class="metrics" style="margin-top:16px"><div class="metric"><small>Total qty</small><b>${num(summary.tests)}</b></div><div class="metric"><small>Total cost</small><b>${money(summary.cost)}</b></div><div class="metric"><small>Avg cost/test</small><b>${money(summary.avg)}</b></div><div class="metric"><small>Active machine/test</small><b>${num(summary.machines)} / ${num(summary.testTypes)}</b></div></section>${!rh.length?`<div class="empty" style="margin-top:16px">No data in selected filter range.</div>`:""}${app.report==="trend"?`<div class="grid2" style="margin-top:16px"><div class="card"><h3 style="margin-top:0">Trend by period</h3><div class="chart"><canvas id="rTrend"></canvas></div></div><div class="card"><h3 style="margin-top:0">By group</h3><div class="chart"><canvas id="rGroup"></canvas></div></div></div><div class="card" style="margin-top:16px"><div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Qty</th><th>Cost</th></tr></thead><tbody>${trend.map(r=>`<tr><td>${esc(r.date)}</td><td>${num(r.qty)}</td><td>${money(r.cost)}</td></tr>`).join("")||`<tr><td colspan="3"><div class="empty">No data</div></td></tr>`}</tbody></table></div></div>`:""}${app.report==="cost"?`<div class="grid2" style="margin-top:16px"><div class="card"><h3 style="margin-top:0">Cost by group</h3><div class="chart"><canvas id="rCost"></canvas></div></div><div class="card"><h3 style="margin-top:0">Top materials by cost</h3><div class="chart"><canvas id="rMaterial"></canvas></div></div></div><div class="card" style="margin-top:16px"><div class="table-wrap"><table class="table"><thead><tr><th>Group</th><th>Qty</th><th>Cost</th><th>Avg cost/test</th></tr></thead><tbody>${costRows.map(r=>`<tr><td>${esc(r.group)}</td><td>${num(r.qty)}</td><td>${money(r.cost)}</td><td>${money(r.avgCost)}</td></tr>`).join("")||`<tr><td colspan="4"><div class="empty">No data</div></td></tr>`}</tbody></table></div></div>`:""}${app.report==="machine"?`<div class="grid2" style="margin-top:16px"><div class="card"><h3 style="margin-top:0">By machine</h3><div class="chart"><canvas id="rMachine"></canvas></div></div><div class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Machine</th><th>Name</th><th>Qty</th><th>Cost</th><th>Avg cost/test</th></tr></thead><tbody>${machineRows.map(x=>`<tr><td>${esc(x.machineCode)}</td><td>${esc(x.machineName)}</td><td>${num(x.qty)}</td><td>${money(x.cost)}</td><td>${money(x.avgCost)}</td></tr>`).join("")||`<tr><td colspan="5"><div class="empty">No data</div></td></tr>`}</tbody></table></div></div></div>`:""}${app.report==="forecast"?`<div class="card" style="margin-top:16px"><div class="tools" style="justify-content:space-between"><div><h3 style="margin:0">30 day forecast</h3><div class="muted">Average use * 1.3 from filtered dataset.</div></div></div><div class="table-wrap" style="margin-top:14px"><table class="table"><thead><tr><th>Material</th><th>Name</th><th>Forecast</th><th>Stock</th><th>Suggested order</th><th>Status</th></tr></thead><tbody>${fcRows.map(x=>`<tr><td>${esc(x.materialCode)}</td><td>${esc(x.materialName)}</td><td>${num(x.forecastQty)} ${esc(x.unit)}</td><td>${num(x.stock)} ${esc(x.unit)}</td><td>${num(x.suggestedOrder)} ${esc(x.unit)}</td><td><span class="pill ${x.suggestedOrder>0?"pill-warn":"pill-ok"}">${x.suggestedOrder>0?"Need order":"Enough"}</span></td></tr>`).join("")||`<tr><td colspan="6"><div class="empty">No data</div></td></tr>`}</tbody></table></div></div>`:""}${app.report==="simulation"?simulationPanel():""}${app.report==="batch"?batchPanel():""}</section>`;
+    }
+
+    function clearCharts(){ Object.values(app.charts).forEach(c=>c&&c.destroy&&c.destroy()); app.charts = {}; }
+
+    function drawCharts(){
+      clearCharts();
+      if(!window.Chart || !app.user) return;
+
+      const d = dashboardData();
+      if(document.getElementById("dashTrend")){
+        app.charts.dashTrend = new Chart(document.getElementById("dashTrend"),{
+          type:"line",
+          data:{labels:d.last7.map(x=>x.date.slice(5)),datasets:[{label:"Tests",data:d.last7.map(x=>x.total),borderColor:"#0f766e",backgroundColor:"rgba(15,118,110,.18)",fill:true,tension:.35}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+
+      if(document.getElementById("dashGroup")){
+        app.charts.dashGroup = new Chart(document.getElementById("dashGroup"),{
+          type:"doughnut",
+          data:{labels:Object.keys(d.groups),datasets:[{data:Object.values(d.groups),backgroundColor:["#0f766e","#14532d","#ca8a04","#3b82f6","#ef4444","#8b5cf6"]}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+
+      const rh = filteredReportHistory();
+      const byDate = {};
+      const byGroup = {};
+      const byCost = {};
+      rh.forEach(h => {
+        byDate[h.date] = (byDate[h.date]||0) + Number(h.qty||0);
+        byGroup[h.group] = (byGroup[h.group]||0) + Number(h.qty||0);
+        byCost[h.group] = (byCost[h.group]||0) + Number(h.totalCost||0);
+      });
+
+      if(document.getElementById("rTrend")){
+        const labels = Object.keys(byDate).sort();
+        app.charts.rTrend = new Chart(document.getElementById("rTrend"),{
+          type:"bar",
+          data:{labels,datasets:[{label:"Qty",data:labels.map(x=>byDate[x]),backgroundColor:"#0f766e"}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+
+      if(document.getElementById("rGroup")){
+        app.charts.rGroup = new Chart(document.getElementById("rGroup"),{
+          type:"pie",
+          data:{labels:Object.keys(byGroup),datasets:[{data:Object.values(byGroup),backgroundColor:["#14532d","#0f766e","#ca8a04","#f97316","#8b5cf6","#3b82f6"]}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+
+      if(document.getElementById("rCost")){
+        app.charts.rCost = new Chart(document.getElementById("rCost"),{
+          type:"bar",
+          data:{labels:Object.keys(byCost),datasets:[{label:"Cost",data:Object.values(byCost),backgroundColor:"#ca8a04"}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+
+      if(document.getElementById("rMaterial")){
+        const rows = materialCostRows(rh).slice(0,6);
+        app.charts.rMaterial = new Chart(document.getElementById("rMaterial"),{
+          type:"bar",
+          data:{labels:rows.map(x=>x.materialName),datasets:[{label:"Cost",data:rows.map(x=>x.cost),backgroundColor:"#14532d"}]},
+          options:{responsive:true,maintainAspectRatio:false,indexAxis:"y"}
+        });
+      }
+
+      if(document.getElementById("rMachine")){
+        const rows = machineAgg(rh);
+        app.charts.rMachine = new Chart(document.getElementById("rMachine"),{
+          type:"bar",
+          data:{labels:rows.map(x=>x.machineCode),datasets:[{label:"Qty",data:rows.map(x=>x.qty),backgroundColor:"#3b82f6"}]},
+          options:{responsive:true,maintainAspectRatio:false}
+        });
+      }
+    }
+
+    function mount(){
+      document.getElementById("app").innerHTML = app.user ? appView() : loginView();
+      bind();
+      if(app.user) queueMicrotask(drawCharts);
+    }
+
+    function exportPack(key){
+      if(key === "machines") return visibleMachines().map(x=>({MaMay:x.code,TenMay:x.name,Nhom:x.group}));
+      if(key === "tests") return visibleTests().map(x=>({MaXetNghiem:x.code,TenXetNghiem:x.name,Nhom:x.group,Gia:x.price,May:(x.machines||[]).join(", ")}));
+      if(key === "materials") return app.db.materials.map(x=>({MaVatTu:x.code,TenVatTu:x.name,DonViTinh:x.unit,TenThuongMai:x.trade,NhaCungCap:x.supplier,NuocSX:x.country,HangSX:x.brand,QuyCachDongGoi:x.pack,GiaTien:x.price}));
+      if(key === "standards") return visibleStandards().map(x=>({MaMayXN:x.machineCode,TenMayXN:machine(x.machineCode)?.name||"",MaXetNghiem:x.testCode,TenXetNghiem:test(x.testCode)?.name||"",MaVatTu:x.materialCode,TenVatTu:material(x.materialCode)?.name||"",DonViTinh:x.unit,DinhMucTieuHao:x.amount}));
+      return [];
+    }
+
+    function importPack(key, rows){
+      if(!rows.length) return alert("No rows");
+      if(key === "machines"){
+        rows.forEach(r => upsertByCode(app.db.machines, {code:r.MaMay||r.code||"",name:r.TenMay||r.name||"",group:r.Nhom||r.group||""}, "m"));
+      }
+      if(key === "tests"){
+        rows.forEach(r => upsertByCode(app.db.tests, {code:r.MaXetNghiem||r.code||"",name:r.TenXetNghiem||r.name||"",group:r.Nhom||r.group||"",price:Number(r.Gia||r.price||0),machines:String(r.May||r.machines||"").split(",").map(x=>x.trim()).filter(Boolean)}, "t"));
+      }
+      if(key === "materials"){
+        rows.forEach(r => upsertByCode(app.db.materials, {code:r.MaVatTu||r.code||"",name:r.TenVatTu||r.name||"",unit:r.DonViTinh||r.unit||"",trade:r.TenThuongMai||r.trade||"",supplier:r.NhaCungCap||r.supplier||"",country:r.NuocSX||r.country||"",brand:r.HangSX||r.brand||"",pack:r.QuyCachDongGoi||r.pack||"",price:Number(r.GiaTien||r.price||0)}, "v"));
+      }
+      if(key === "standards"){
+        rows.forEach(r => upsertStandard({machineCode:r.MaMayXN||"",testCode:r.MaXetNghiem||"",materialCode:r.MaVatTu||"",unit:r.DonViTinh||"",amount:Number(r.DinhMucTieuHao||0)}));
+      }
+      save();
+      mount();
+    }
+
+    function reportExportRows(){
+      const rows = filteredReportHistory();
+      if(app.report === "trend") return trendRows(rows).map(x=>({Date:x.date,Qty:x.qty,Cost:x.cost}));
+      if(app.report === "cost") return groupCostRows(rows).map(x=>({Group:x.group,Qty:x.qty,Cost:x.cost,AvgCost:x.avgCost}));
+      if(app.report === "machine") return machineAgg(rows).map(x=>({Machine:x.machineCode,Name:x.machineName,Qty:x.qty,Cost:x.cost,AvgCost:x.avgCost}));
+      if(app.report === "forecast") return forecastRows(rows).map(x=>({Material:x.materialCode,Name:x.materialName,Forecast:x.forecastQty,Stock:x.stock,SuggestedOrder:x.suggestedOrder,Unit:x.unit}));
+      if(app.report === "simulation"){
+        const s = simulationSummary();
+        return [{Test:s.testCode,TestName:s.testName,Machine:s.machineCode,MachineName:s.machineName,QtyPerMonth:s.qty,Months:s.months,VariablePerTest:s.variablePerTest,TotalPerTest:s.totalPerTest,VariableTotal:s.variableTotal,FixedTotal:s.fixedTotal,TotalCost:s.totalCost,Revenue:s.revenue,Margin:s.margin}];
+      }
+      if(app.report === "batch"){
+        const st = ensureAdvancedReportState();
+        const rs = st.batchResult?.rows || [];
+        return rs.map(r=>({Line:r.line,Test:r.testCode,TestName:r.testName,Machine:r.machineCode,MonthlyQty:r.monthlyQty,PeriodQty:r.periodQty,VariableCost:r.variableCost,FixedCost:r.fixedCost,TotalCost:r.totalCost,Revenue:r.revenue,Margin:r.margin}));
+      }
+      return [];
+    }
+
+    function bind(){
+      const lf = document.getElementById("loginForm");
+      if(lf) lf.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(lf);
+        const u = account(fd.get("u"));
+        if(!u || u.p !== fd.get("p")) return alert("Invalid login");
+        app.user = u;
+        mount();
+      };
+
+      document.querySelectorAll("[data-nav]").forEach(b => b.onclick = () => { app.view = b.dataset.nav; mount(); });
+      document.querySelectorAll("[data-cat]").forEach(b => b.onclick = () => { app.catalog = b.dataset.cat; mount(); });
+      document.querySelectorAll("[data-report]").forEach(b => b.onclick = () => { app.report = b.dataset.report; mount(); });
+
+      const logout = document.getElementById("logout");
+      if(logout) logout.onclick = () => { app.user = null; clearCharts(); mount(); };
+
+      const reset = document.getElementById("resetDb");
+      if(reset) reset.onclick = () => {
+        if(!confirm("Reload seed data?")) return;
+        app.db = seed();
+        app.temp.editing = {machines:null,tests:null,materials:null};
+        app.temp.selected = {machines:new Set(),tests:new Set(),materials:new Set(),standards:new Set(),inventory:new Set(),txns:new Set(),history:new Set()};
+        save();
+        mount();
+      };
+
+      const backup = document.getElementById("backupJson");
+      if(backup) backup.onclick = () => exportBackupJson();
+
+      const restore = document.getElementById("restoreJsonFile");
+      if(restore) restore.onchange = () => {
+        const file = restore.files && restore.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try{
+            const parsed = JSON.parse(String(ev.target.result||"{}"));
+            const checked = validateBackupPayload(parsed);
+            if(!checked.ok) return alert(checked.error);
+            if(!confirm("Restore JSON se ghi de du lieu hien tai. Tiep tuc?")) return;
+            app.db = clone(checked.data);
+            app.temp.editing = {machines:null,tests:null,materials:null};
+            app.temp.selected = {machines:new Set(),tests:new Set(),materials:new Set(),standards:new Set(),inventory:new Set(),txns:new Set(),history:new Set()};
+            save();
+            mount();
+          }catch(err){
+            alert("Khong doc duoc JSON backup.");
+          }finally{
+            restore.value = "";
+          }
+        };
+        reader.readAsText(file);
+      };
+
+      document.querySelectorAll("[data-search]").forEach(i => {
+        const applySearch = () => {
+          const key = i.dataset.search;
+          app.temp.search[key] = i.value;
+          const caret = i.selectionStart ?? i.value.length;
+          mount();
+          const next = document.querySelector(`[data-search='${key}']`);
+          if(next){
+            next.focus();
+            const pos = Math.min(caret, next.value.length);
+            next.setSelectionRange(pos, pos);
+          }
+        };
+        i.oncompositionstart = () => { i.dataset.composing = "1"; };
+        i.oncompositionend = () => {
+          i.dataset.composing = "0";
+          applySearch();
+        };
+        i.oninput = () => {
+          if(i.dataset.composing === "1") return;
+          applySearch();
+        };
+      });
+
+      document.querySelectorAll("[data-filter]").forEach(i => i.onchange = () => {
+        app.temp.filters[i.dataset.filter] = i.value;
+        mount();
+      });
+
+      document.querySelectorAll("[data-sort]").forEach(b => b.onclick = () => {
+        setSort(b.dataset.sort, b.dataset.key);
+        mount();
+      });
+
+      document.querySelectorAll("[data-sort-select]").forEach(sel => sel.onchange = () => {
+        const [key, dir] = String(sel.value||"date:desc").split(":");
+        app.temp.sorting[sel.dataset.sortSelect] = {key:key||"date", dir:dir==="asc"?"asc":"desc"};
+        mount();
+      });
+
+      document.querySelectorAll("[data-check-row]").forEach(chk => chk.onchange = () => {
+        toggleSelect(chk.dataset.checkRow, chk.dataset.id, chk.checked);
+        mount();
+      });
+
+      document.querySelectorAll("[data-check-all]").forEach(chk => chk.onchange = () => {
+        const key = chk.dataset.checkAll;
+        const ids = Array.from(document.querySelectorAll(`[data-check-row='${key}']`)).map(x=>x.dataset.id);
+        toggleSelectAll(key, ids, chk.checked);
+        mount();
+      });
+
+      const bulkDelMachines = document.getElementById("bulkDelMachines");
+      if(bulkDelMachines) bulkDelMachines.onclick = () => {
+        const ids = Array.from(selectSet("machines"));
+        if(!ids.length) return alert("Chua chon dong nao.");
+        const rows = ids.map(id=>app.db.machines.find(x=>x.id===id)).filter(Boolean);
+        const deps = rows.map(r=>dependencyMessage("machines",r)).filter(Boolean);
+        const msg = deps.length
+          ? `Xoa ${rows.length} may va du lieu lien quan?\n` + deps.slice(0,8).join("\n")
+          : `Xoa ${rows.length} may da chon?`;
+        if(!confirm(msg)) return;
+        rows.forEach(r=>cascadeDeleteCatalog("machines", r));
+        app.db.machines = removeByIds(app.db.machines, rows.map(r=>r.id));
+        clearSelection("machines");
+        save();
+        mount();
+      };
+
+      const bulkDelTests = document.getElementById("bulkDelTests");
+      if(bulkDelTests) bulkDelTests.onclick = () => {
+        const ids = Array.from(selectSet("tests"));
+        if(!ids.length) return alert("Chua chon dong nao.");
+        const rows = ids.map(id=>app.db.tests.find(x=>x.id===id)).filter(Boolean);
+        const deps = rows.map(r=>dependencyMessage("tests",r)).filter(Boolean);
+        const msg = deps.length
+          ? `Xoa ${rows.length} xet nghiem va du lieu lien quan?\n` + deps.slice(0,8).join("\n")
+          : `Xoa ${rows.length} xet nghiem da chon?`;
+        if(!confirm(msg)) return;
+        rows.forEach(r=>cascadeDeleteCatalog("tests", r));
+        app.db.tests = removeByIds(app.db.tests, rows.map(r=>r.id));
+        clearSelection("tests");
+        save();
+        mount();
+      };
+
+      const bulkDelMaterials = document.getElementById("bulkDelMaterials");
+      if(bulkDelMaterials) bulkDelMaterials.onclick = () => {
+        const ids = Array.from(selectSet("materials"));
+        if(!ids.length) return alert("Chua chon dong nao.");
+        const rows = ids.map(id=>app.db.materials.find(x=>x.id===id)).filter(Boolean);
+        const deps = rows.map(r=>dependencyMessage("materials",r)).filter(Boolean);
+        const msg = deps.length
+          ? `Xoa ${rows.length} vat tu va du lieu lien quan?\n` + deps.slice(0,8).join("\n")
+          : `Xoa ${rows.length} vat tu da chon?`;
+        if(!confirm(msg)) return;
+        rows.forEach(r=>cascadeDeleteCatalog("materials", r));
+        app.db.materials = removeByIds(app.db.materials, rows.map(r=>r.id));
+        clearSelection("materials");
+        save();
+        mount();
+      };
+
+      document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => {
+        app.temp.editing[b.dataset.edit] = b.dataset.id;
+        mount();
+      });
+
+      document.querySelectorAll("[data-clear-edit]").forEach(b => b.onclick = () => {
+        resetEdit(b.dataset.clearEdit);
+        mount();
+      });
+
+      const mf = document.getElementById("machineForm");
+      if(mf) mf.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(mf);
+        const editId = app.temp.editing.machines;
+        const payload = {code:String(fd.get("code")||"").trim(),name:String(fd.get("name")||"").trim(),group:String(fd.get("group")||"").trim()};
+        if(!payload.code || !payload.name || !payload.group) return alert("Code, name, group are required.");
+        if(codeExists(app.db.machines, payload.code, editId)) return alert("Machine code already exists.");
+        if(editId){
+          const row = app.db.machines.find(x=>x.id===editId);
+          if(!row) return alert("Machine not found.");
+          Object.assign(row,payload);
+        }else{
+          app.db.machines.unshift({id:id("m"),...payload});
+        }
+        resetEdit("machines");
+        save();
+        mount();
+      };
+
+      const tf = document.getElementById("testForm");
+      if(tf) tf.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(tf);
+        const editId = app.temp.editing.tests;
+        const code = String(fd.get("code")||"").trim();
+        const name = String(fd.get("name")||"").trim();
+        const group = String(fd.get("group")||"").trim();
+        const price = Number(fd.get("price")||0);
+        const machines = String(fd.get("machines")||"").split(",").map(x=>x.trim()).filter(Boolean);
+        if(!code || !name || !group) return alert("Code, name, group are required.");
+        if(Number.isNaN(price) || price < 0) return alert("Price must be >= 0.");
+        if(codeExists(app.db.tests, code, editId)) return alert("Test code already exists.");
+        const unknownMachines = machines.filter(x => !app.db.machines.some(m => normalize(m.code)===normalize(x)));
+        if(unknownMachines.length) return alert("Unknown machine code: " + unknownMachines.join(", "));
+        if(editId){
+          const row = app.db.tests.find(x=>x.id===editId);
+          if(!row) return alert("Test not found.");
+          Object.assign(row,{code,name,group,price,machines});
+        }else{
+          app.db.tests.unshift({id:id("t"),code,name,group,price,machines});
+        }
+        resetEdit("tests");
+        save();
+        mount();
+      };
+
+      const vf = document.getElementById("materialForm");
+      if(vf) vf.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(vf);
+        const editId = app.temp.editing.materials;
+        const payload = {
+          code:String(fd.get("code")||"").trim(),
+          name:String(fd.get("name")||"").trim(),
+          unit:String(fd.get("unit")||"").trim(),
+          trade:String(fd.get("trade")||""),
+          supplier:String(fd.get("supplier")||""),
+          country:String(fd.get("country")||""),
+          brand:String(fd.get("brand")||""),
+          pack:String(fd.get("pack")||""),
+          price:Number(fd.get("price")||0)
+        };
+        if(!payload.code || !payload.name || !payload.unit) return alert("Code, name, unit are required.");
+        if(Number.isNaN(payload.price) || payload.price < 0) return alert("Price must be >= 0.");
+        if(codeExists(app.db.materials, payload.code, editId)) return alert("Material code already exists.");
+        if(editId){
+          const row = app.db.materials.find(x=>x.id===editId);
+          if(!row) return alert("Material not found.");
+          Object.assign(row,payload);
+        }else{
+          app.db.materials.unshift({id:id("v"),...payload});
+        }
+        resetEdit("materials");
+        save();
+        mount();
+      };
+
+      document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+        const map = {machines:"machines",tests:"tests",materials:"materials",standards:"standards"};
+        const key = map[b.dataset.del];
+        const row = app.db[key].find(x=>x.id===b.dataset.id);
+        if(!row) return;
+        if(key !== "standards"){
+          const dep = dependencyMessage(key, row);
+          const msg = dep ? `Xoa dong va du lieu lien quan?\n${dep}` : "Delete row?";
+          if(!confirm(msg)) return;
+          cascadeDeleteCatalog(key, row);
+        }else{
+          if(!confirm("Delete row?")) return;
+        }
+        app.db[key] = app.db[key].filter(x=>x.id!==b.dataset.id);
+        if(app.temp.editing[key] === b.dataset.id) resetEdit(key);
+        save();
+        mount();
+      });
+
+      const machinePick = document.getElementById("stdMachinePick");
+      if(machinePick) machinePick.onchange = () => {
+        const code = String(machinePick.value||"").trim();
+        if(!machine(code)) return alert("Khong tim thay MaMayXN hop le");
+        app.temp.filters.stdCfgMachine = code;
+        const tests = testsForMachine(code);
+        const nextTest = tests[0]?.code || "";
+        app.temp.filters.stdCfgTest = nextTest;
+        if(nextTest) hydrateStdEditor(code, nextTest);
+        mount();
+      };
+
+      const testPick = document.getElementById("stdTestPick");
+      if(testPick) testPick.onchange = () => {
+        const cfg = buildStdConfig();
+        const code = String(testPick.value||"").trim();
+        if(!cfg.tests.some(t=>t.code===code)) return alert("Khong tim thay MaXetNghiem hop le");
+        app.temp.filters.stdCfgTest = code;
+        if(cfg.machineCode) hydrateStdEditor(cfg.machineCode, code);
+        mount();
+      };
+
+      document.querySelectorAll("[data-std-edit-pair]").forEach(b => b.onclick = () => {
+        const [machineCode,testCode] = String(b.dataset.stdEditPair||"").split("||");
+        if(!machine(machineCode) || !test(testCode)) return;
+        app.temp.filters.stdCfgMachine = machineCode;
+        app.temp.filters.stdCfgTest = testCode;
+        app.temp.search.stdMachinePick = "";
+        app.temp.search.stdTestPick = "";
+        hydrateStdEditor(machineCode, testCode);
+        mount();
+      });
+
+      document.querySelectorAll("[data-std-delete-pair]").forEach(b => b.onclick = () => {
+        const [machineCode,testCode] = String(b.dataset.stdDeletePair||"").split("||");
+        if(!machineCode || !testCode) return;
+        const count = app.db.standards.filter(x=>x.machineCode===machineCode && x.testCode===testCode).length;
+        if(!count) return;
+        if(!confirm(`Xoa ${count} dong dinh muc cua ${machineCode} | ${testCode}?`)) return;
+        app.db.standards = app.db.standards.filter(x => !(x.machineCode===machineCode && x.testCode===testCode));
+        if(app.temp.filters.stdCfgMachine===machineCode && app.temp.filters.stdCfgTest===testCode){
+          setStdEditorRows([stdDraftRow()], machineCode, testCode);
+        }
+        save();
+        mount();
+      });
+
+      document.querySelectorAll("[data-std-draft]").forEach(i => i.onchange = () => {
+        const rowId = i.dataset.row;
+        const field = i.dataset.stdDraft;
+        const cfg = buildStdConfig();
+        const rows = cfg.rows.map(r=>stdDraftRow(r));
+        const idx = rows.findIndex(r=>r.draftId===rowId);
+        if(idx<0) return;
+        const row = rows[idx];
+
+        if(field === "amount"){
+          const amount = Number(i.value||0);
+          if(Number.isNaN(amount) || amount < 0) return alert("DinhMucTieuHao phai >= 0"), mount();
+          row.amount = amount;
+        }
+
+        if(field === "materialQuery"){
+          row.materialQuery = String(i.value||"").trim();
+          const found = resolveMaterialByQuery(row.materialQuery);
+          if(found){
+            row.materialCode = found.code;
+            row.unit = found.unit || "";
+            row.materialQuery = found.name;
+          }else{
+            row.materialCode = "";
+            row.unit = "";
+          }
+        }
+
+        setStdEditorRows(rows, cfg.machineCode, cfg.testCode);
+        mount();
+      });
+
+      document.querySelectorAll("[data-std-draft-remove]").forEach(b => b.onclick = () => {
+        const cfg = buildStdConfig();
+        const rows = cfg.rows.filter(r=>r.draftId!==b.dataset.stdDraftRemove).map(r=>stdDraftRow(r));
+        setStdEditorRows(rows.length ? rows : [stdDraftRow()], cfg.machineCode, cfg.testCode);
+        mount();
+      });
+
+      const addStdDraft = document.getElementById("addStdDraft");
+      if(addStdDraft) addStdDraft.onclick = () => {
+        const cfg = buildStdConfig();
+        if(!cfg.machineCode || !cfg.testCode) return alert("Vui long chon may va xet nghiem truoc");
+        const rows = cfg.rows.map(r=>stdDraftRow(r));
+        rows.push(stdDraftRow());
+        setStdEditorRows(rows, cfg.machineCode, cfg.testCode);
+        mount();
+      };
+
+      const copy = document.getElementById("copyForm");
+      if(copy) copy.onsubmit = e => {
+        e.preventDefault();
+        const cfg = buildStdConfig();
+        const fd = new FormData(copy);
+        const fromPair = String(fd.get("fromPair")||"").trim();
+        const [fromMachine, fromTest] = fromPair.split("||");
+        if(!cfg.machineCode || !cfg.testCode) return alert("Vui long chon may va xet nghiem dich");
+        if(!fromMachine || !fromTest) return alert("Vui long chon nguon copy");
+        if(fromMachine===cfg.machineCode && fromTest===cfg.testCode) return alert("Nguon va dich khong duoc giong nhau");
+        const src = app.db.standards.filter(x=>x.machineCode===fromMachine && x.testCode===fromTest);
+        if(!src.length) return alert("Nguon copy chua co dinh muc");
+        const rows = src.map(s => stdDraftRow({materialCode:s.materialCode, unit:s.unit, amount:s.amount}));
+        setStdEditorRows(rows.length ? rows : [stdDraftRow()], cfg.machineCode, cfg.testCode);
+        alert(`Da copy ${rows.length} dong dinh muc tu ${fromMachine} | ${fromTest}.`);
+        mount();
+      };
+
+      const saveStdConfig = document.getElementById("saveStdConfig");
+      if(saveStdConfig) saveStdConfig.onclick = () => {
+        const machineCode = String(app.temp.filters.stdCfgMachine||"").trim();
+        const testCode = String(app.temp.filters.stdCfgTest||"").trim();
+        if(!machine(machineCode)) return alert("MaMayXN khong hop le");
+        if(!test(testCode)) return alert("MaXetNghiem khong hop le");
+
+        const cfg = buildStdConfig();
+        const draftRows = cfg.rows.map(r=>stdDraftRow(r));
+        const seen = new Set();
+        const rows = [];
+
+        for(const r of draftRows){
+          const found = r.materialCode ? material(r.materialCode) : resolveMaterialByQuery(r.materialQuery);
+          if(!found){
+            if(!r.materialQuery && !r.materialCode && Number(r.amount||0)===0) continue;
+            return alert("Co dong vat tu chua hop le, vui long chon lai TenVatTu.");
+          }
+          const amount = Number(r.amount||0);
+          if(Number.isNaN(amount) || amount < 0) return alert("DinhMucTieuHao phai >= 0");
+          if(amount===0) continue;
+          if(seen.has(found.code)) return alert(`Trung MaVatTu ${found.code} trong cung mot cau hinh.`);
+          seen.add(found.code);
+          rows.push({materialCode:found.code, unit:String(r.unit||found.unit||"").trim(), amount});
+        }
+
+        app.db.standards = app.db.standards.filter(x => !(x.machineCode===machineCode && x.testCode===testCode));
+        rows.forEach(r => app.db.standards.unshift({id:id("s"),machineCode,testCode,materialCode:r.materialCode,unit:r.unit,amount:r.amount}));
+        setStdEditorRows(rows.length ? rows.map(r=>stdDraftRow({materialCode:r.materialCode,unit:r.unit,amount:r.amount})) : [stdDraftRow()], machineCode, testCode);
+        save();
+        mount();
+      };
+
+      const cf = document.getElementById("consumptionForm");
+      const preview = document.getElementById("previewCalc");
+      if(preview && cf) preview.onclick = () => {
+        const fd = new FormData(cf);
+        app.temp.consumptionDate = String(fd.get("date"));
+        window.latestCalc = previewConsumption(fd);
+        document.getElementById("calcPreview").innerHTML = window.latestCalc.html;
+      };
+
+      if(cf) cf.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(cf);
+        const qty = Number(fd.get("qty")||0);
+        if(Number.isNaN(qty) || qty <= 0) return alert("Quantity must be > 0");
+        const calc = previewConsumption(fd);
+        if(!calc.rows.length) return alert("No standards");
+        if(calc.rows.some(r=>!r.enough) && !confirm("Some materials are short. Save anyway?")) return;
+        calc.rows.forEach(r=>deduct(r.materialCode,r.need));
+        const t = test(fd.get("testCode"));
+        app.db.history.unshift({id:id("h"),date:String(fd.get("date")),testCode:String(fd.get("testCode")),qty,machineCode:String(fd.get("machineCode")),group:t?.group||"",totalCost:calc.total,actor:app.user.u});
+        window.latestCalc = calc;
+        save();
+        mount();
+      };
+
+      const exportCalc = document.getElementById("exportCalc");
+      if(exportCalc) exportCalc.onclick = () => {
+        if(!window.latestCalc?.rows?.length) return alert("No calculation to export");
+        exportRows("ket_qua_tieu_hao.xlsx", window.latestCalc.rows);
+      };
+
+      const lotForm = document.getElementById("lotForm");
+      if(lotForm) lotForm.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(lotForm);
+        const qty = Number(fd.get("qty")||0);
+        if(Number.isNaN(qty) || qty < 0) return alert("Qty must be >= 0");
+        const lot = {id:id("l"),materialCode:String(fd.get("materialCode")),lotNo:String(fd.get("lotNo")||"").trim(),expiryDate:String(fd.get("expiryDate")),qty,unit:String(fd.get("unit")||"").trim(),receivedDate:String(fd.get("receivedDate")),note:String(fd.get("note")||"")};
+        if(!lot.lotNo || !lot.unit) return alert("Lot and unit are required");
+        app.db.lots.unshift(lot);
+        app.db.txns.unshift({id:id("x"),type:"IN",date:lot.receivedDate,materialCode:lot.materialCode,lotNo:lot.lotNo,qty:lot.qty,note:"Nhap kho",actor:app.user.u});
+        save();
+        mount();
+      };
+
+      const txnForm = document.getElementById("txnForm");
+      if(txnForm) txnForm.onsubmit = e => {
+        e.preventDefault();
+        const fd = new FormData(txnForm);
+        const type = String(fd.get("type"));
+        const materialCode = String(fd.get("materialCode"));
+        const lotNo = String(fd.get("lotNo")||"").trim();
+        const qty = Number(fd.get("qty")||0);
+        if(!lotNo) return alert("Lot is required");
+        if(Number.isNaN(qty) || qty <= 0) return alert("Qty must be > 0");
+
+        let lot = app.db.lots.find(x=>x.materialCode===materialCode && x.lotNo===lotNo);
+        if(!lot && type === "IN"){
+          const m = material(materialCode);
+          lot = {id:id("l"),materialCode,lotNo,expiryDate:day(90),qty:0,unit:m?.unit||"",receivedDate:String(fd.get("date")),note:"From txn"};
+          app.db.lots.unshift(lot);
+        }
+        if(!lot) return alert("Lot not found");
+        if(type === "OUT" && Number(lot.qty||0) < qty) return alert("Qty exceeds stock");
+
+        lot.qty = Number((Number(lot.qty||0) + (type === "IN" ? qty : -qty)).toFixed(4));
+        app.db.txns.unshift({id:id("x"),type,date:String(fd.get("date")),materialCode,lotNo,qty,note:String(fd.get("note")||""),actor:app.user.u});
+        save();
+        mount();
+      };
+
+      document.querySelectorAll("[data-export]").forEach(b => b.onclick = () => exportRows(`${b.dataset.export}.xlsx`, exportPack(b.dataset.export)));
+      document.querySelectorAll("[data-import]").forEach(i => i.onchange = () => {
+        const file = i.files && i.files[0];
+        if(!file) return;
+        parseFile(file, rows => {
+          importPack(i.dataset.import, rows);
+          i.value = "";
+        });
+      });
+
+      const start = document.getElementById("start");
+      const end = document.getElementById("end");
+      if(start) start.onchange = () => {
+        if(end && end.value && start.value > end.value) return alert("From date must be <= To date");
+        app.temp.start = start.value;
+        mount();
+      };
+      if(end) end.onchange = () => {
+        if(start && start.value && start.value > end.value) return alert("To date must be >= From date");
+        app.temp.end = end.value;
+        mount();
+      };
+
+      const simTest = document.getElementById("simTest");
+      if(simTest) simTest.onchange = () => {
+        ensureAdvancedReportState().simTest = simTest.value;
+        ensureAdvancedReportState().simMachine = "";
+        mount();
+      };
+      const simMachine = document.getElementById("simMachine");
+      if(simMachine) simMachine.onchange = () => {
+        ensureAdvancedReportState().simMachine = simMachine.value;
+        mount();
+      };
+      const simFrom = document.getElementById("simFrom");
+      if(simFrom) simFrom.onchange = () => {
+        ensureAdvancedReportState().simFrom = simFrom.value;
+        mount();
+      };
+      const simTo = document.getElementById("simTo");
+      if(simTo) simTo.onchange = () => {
+        ensureAdvancedReportState().simTo = simTo.value;
+        mount();
+      };
+      const simQty = document.getElementById("simQty");
+      if(simQty) simQty.oninput = () => {
+        ensureAdvancedReportState().simQty = Number(simQty.value||0);
+        mount();
+      };
+      const simFixedMonthly = document.getElementById("simFixedMonthly");
+      if(simFixedMonthly) simFixedMonthly.oninput = () => {
+        ensureAdvancedReportState().simFixedMonthly = Number(simFixedMonthly.value||0);
+        mount();
+      };
+
+      const batchInput = document.getElementById("batchInput");
+      if(batchInput) batchInput.oninput = () => {
+        ensureAdvancedReportState().batchInput = batchInput.value;
+      };
+      const batchMonths = document.getElementById("batchMonths");
+      if(batchMonths) batchMonths.oninput = () => {
+        ensureAdvancedReportState().batchMonths = Math.max(1, Number(batchMonths.value||1));
+      };
+      const batchFixedMonthly = document.getElementById("batchFixedMonthly");
+      if(batchFixedMonthly) batchFixedMonthly.oninput = () => {
+        ensureAdvancedReportState().batchFixedMonthly = Math.max(0, Number(batchFixedMonthly.value||0));
+      };
+      const batchSample = document.getElementById("batchSample");
+      if(batchSample) batchSample.onclick = () => {
+        const st = ensureAdvancedReportState();
+        st.batchInput = "XN-GLU, M-HS01, 120\nXN-CBC, M-HH01, 150\nXN-PCR, M-SH01, 40";
+        mount();
+      };
+      const batchAnalyze = document.getElementById("batchAnalyze");
+      if(batchAnalyze) batchAnalyze.onclick = () => {
+        const st = ensureAdvancedReportState();
+        const parsed = parseBatchInput(st.batchInput);
+        const analyzed = buildBatchAnalysis(parsed.rows, st.batchMonths, st.batchFixedMonthly);
+        analyzed.errors = [...parsed.errors, ...(analyzed.errors||[])];
+        st.batchResult = analyzed;
+        mount();
+      };
+      const batchClear = document.getElementById("batchClear");
+      if(batchClear) batchClear.onclick = () => {
+        const st = ensureAdvancedReportState();
+        st.batchInput = "";
+        st.batchResult = null;
+        mount();
+      };
+      const exportBatchMaterials = document.getElementById("exportBatchMaterials");
+      if(exportBatchMaterials) exportBatchMaterials.onclick = () => exportRows("bao_cao_batch_materials.xlsx", batchMaterialExportRows());
+
+      const exportReport = document.getElementById("exportReport");
+      if(exportReport) exportReport.onclick = () => exportRows(`bao_cao_${app.report}.xlsx`, reportExportRows());
+    }
+
+    function deduct(code, need){
+      const lots = app.db.lots.filter(x=>x.materialCode===code).sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+      let left = need;
+      lots.forEach(l => {
+        if(left <= 0) return;
+        const take = Math.min(Number(l.qty||0), left);
+        l.qty = Number((Number(l.qty||0)-take).toFixed(4));
+        left = Number((left-take).toFixed(4));
+        if(take > 0) app.db.txns.unshift({id:id("x"),type:"OUT",date:app.temp.consumptionDate,materialCode:code,lotNo:l.lotNo,qty:take,note:"Auto deduct",actor:app.user.u});
+      });
+    }
+
+    (async () => {
+  await load();
+  render();
+})();
+    mount();
+  </script>
+</body>
+</html>
