@@ -155,13 +155,17 @@ const supabaseClient = supabase.createClient(
     }
 
 async function load(){
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from('lab_data')
-    .select('*')
+    .select('payload')
     .eq('id', 1)
     .single();
 
-  if (data) {
+  if (error) {
+    console.error('LOAD ERROR:', error);
+  }
+
+  if (data && data.payload) {
     app.db = data.payload;
   } else {
     app.db = seed();
@@ -170,12 +174,13 @@ async function load(){
 }
 
 async function save(){
-  await supabaseClient
+  const { error } = await supabaseClient
     .from('lab_data')
-    .upsert({
-      id: 1,
-      payload: app.db
-    });
+    .upsert({ id: 1, payload: app.db });
+
+  if (error) {
+    console.error('SAVE ERROR:', error);
+  }
 }
     function userGroup(){ return app.user?.role === "admin" ? null : app.user?.u; }
     function account(u){ return USERS.find(x => x.u.toLowerCase() === String(u||"").trim().toLowerCase()); }
