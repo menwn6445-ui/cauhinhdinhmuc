@@ -28,7 +28,7 @@
 <script>
 const supabaseClient = supabase.createClient(
   'https://ylccflccjktknjdsefcf.supabase.co',
-  'sb_publishable_RU12Pk5Im5rhIDPcH09LpA_pEiFAZQY'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsY2NmbGNjamt0a25qZHNlZmNmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0ODc4NDAsImV4cCI6MjA5MjA2Mzg0MH0.lrj-dA5E6rxzZe3XXMVmCHMVJlEAZizN-9LhyLLSkqQ'
 );
 </script>
 <body>
@@ -1861,9 +1861,8 @@ async function save(){
       });
     }
 
-    (async () => {
+   (async () => {
   await load();
-  render();
 })();
     mount();
   </script>
