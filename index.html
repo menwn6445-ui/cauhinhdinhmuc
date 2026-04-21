@@ -19,7 +19,7 @@
     .content{display:grid;gap:16px}.card{background:rgba(255,253,250,.9);border:1px solid #fff;border-radius:24px;box-shadow:0 18px 34px rgba(0,0,0,.05);padding:20px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{padding:18px;border-radius:20px;background:#fff;border:1px solid #eef0eb}.metric small{color:var(--muted);display:block}.metric b{font-size:30px;display:block;margin-top:8px}
     .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.field-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.field{display:grid;gap:8px}.muted{color:var(--muted);line-height:1.6}.pill{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}.pill-ok{background:#ecfdf3;color:var(--ok)}.pill-warn{background:#fff7e6;color:var(--warn)}.pill-danger{background:#fff1f2;color:var(--danger)}.pill-info{background:#ecfeff;color:#0f5b57}
     .table-wrap{overflow:auto;border-radius:20px;border:1px solid #eef0eb}.table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}.table th,.table td{padding:12px 14px;border-bottom:1px solid #eef0eb;text-align:left;vertical-align:top}.table th{background:#f4f8f6;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-    .inline{padding:9px 10px;border-radius:12px;border:1px solid #dfe5e0;width:100%;background:#fff}.std-table{table-layout:fixed}.std-col-stt{width:56px}.std-col-material{width:36%}.std-col-code{width:18%}.std-col-unit{width:120px}.std-col-amount{width:150px}.std-col-action{width:90px}.std-material-cell{white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-material-preview{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.35;white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-unit-input{max-width:110px}.std-amount-input{max-width:130px}.log{display:grid;gap:10px}.log-item{padding:14px;border:1px solid #eef0eb;border-radius:18px;background:#fff}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed #dce3dd;border-radius:18px}.chart{min-height:300px}
+    .inline{padding:9px 10px;border-radius:12px;border:1px solid #dfe5e0;width:100%;background:#fff}.std-table{table-layout:fixed}.std-col-stt{width:56px}.std-col-material{width:36%}.std-col-code{width:18%}.std-col-unit{width:120px}.std-col-amount{width:150px}.std-col-action{width:90px}.std-col-note{width:170px}.std-note-input{max-width:160px}.std-material-cell{white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-material-preview{margin-top:6px;font-size:12px;color:var(--muted);line-height:1.35;white-space:normal;word-break:break-word;overflow-wrap:anywhere}.std-unit-input{max-width:110px}.std-amount-input{max-width:130px}.log{display:grid;gap:10px}.log-item{padding:14px;border:1px solid #eef0eb;border-radius:18px;background:#fff}.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed #dce3dd;border-radius:18px}.chart{min-height:300px}
     @media (max-width:1100px){.top,.layout,.metrics,.grid2,.login-card{grid-template-columns:1fr}.nav{position:static}} @media (max-width:640px){.wrap,.login{padding:14px}.stats{grid-template-columns:1fr}}
   </style>
 </head>
@@ -59,6 +59,7 @@ const supabaseClient = supabase.createClient(
         search: {machines:"",tests:"",materials:"",standards:"",stdMachinePick:"",stdTestPick:"",stdCopyPair:"",inventory:"",txns:"",history:""},
         filters: {testsGroup:"all",standardsTest:"all",stdCfgMachine:"",stdCfgTest:"",inventoryStatus:"all",reportsGroup:"all",reportsMachine:"all",reportsTest:"all"},
         stdEditor: {machineCode:"",testCode:"",rows:[]},
+        stdSavedMsg: false,
         reportAdvanced: {simTest:"",simMachine:"",simFrom:"",simTo:"",simQty:1,simFixedMonthly:0,batchInput:"",batchMonths:1,batchFixedMonthly:0,batchResult:null},
         sorting: {
           machines:{key:"code",dir:"asc"},
@@ -708,8 +709,9 @@ async function save(){
       if(existing){
         existing.unit = item.unit;
         existing.amount = Number(item.amount||0);
+        existing.note = String(item.note||"");
       }else{
-        app.db.standards.unshift({id:id("s"), machineCode, testCode, materialCode, unit:item.unit, amount:Number(item.amount||0)});
+        app.db.standards.unshift({id:id("s"), machineCode, testCode, materialCode, unit:item.unit, amount:Number(item.amount||0), note:String(item.note||"")});
       }
     }
 
@@ -749,7 +751,8 @@ async function save(){
         materialQuery: String(data.materialQuery || m?.name || "").trim(),
         materialCode: String(data.materialCode || "").trim(),
         unit: String(data.unit || m?.unit || "").trim(),
-        amount: Number.isNaN(amount) ? 0 : amount
+        amount: Number.isNaN(amount) ? 0 : amount,
+        note: String(data.note || "")
       };
     }
 
@@ -827,7 +830,7 @@ async function save(){
     function standardsForPair(machineCode, testCode){
       return app.db.standards
         .filter(s => s.machineCode===machineCode && s.testCode===testCode)
-        .map(s => stdDraftRow({materialCode:s.materialCode, unit:s.unit, amount:s.amount}));
+        .map(s => stdDraftRow({materialCode:s.materialCode, unit:s.unit, amount:s.amount, note:s.note||""}));
     }
 
     function hydrateStdEditor(machineCode, testCode){
@@ -971,9 +974,10 @@ async function save(){
           <td><input class="inline" value="${esc(r.materialCode)}" data-std-draft="materialCode" data-row="${esc(r.draftId)}" readonly></td>
           <td><input class="inline std-unit-input" value="${esc(r.unit)}" data-std-draft="unit" data-row="${esc(r.draftId)}" readonly></td>
           <td><input class="inline std-amount-input" type="number" step="0.0001" min="0" value="${esc(r.amount)}" data-std-draft="amount" data-row="${esc(r.draftId)}"></td>
+          <td><input class="inline std-note-input" value="${esc(r.note||"")}" data-std-draft="note" data-row="${esc(r.draftId)}" placeholder="Ghi chú..."></td>
           <td><button class="btn btn-danger" type="button" data-std-draft-remove="${esc(r.draftId)}">Xóa</button></td>
         </tr>`;
-      }).join("") || `<tr><td colspan="6"><div class="empty">Chưa có dòng vật tư. Bấm "Add vật tư" để thêm.</div></td></tr>`;
+      }).join("") || `<tr><td colspan="7"><div class="empty">Chưa có dòng vật tư. Bấm "Add vật tư" để thêm.</div></td></tr>`;
 
       const configuredRows = cfg.configuredPairs.map(p=>`<tr>
         <td>${esc(p.machineCode)}</td>
@@ -985,6 +989,7 @@ async function save(){
       </tr>`).join("") || `<tr><td colspan="6"><div class="empty">Chưa có xét nghiệm nào được cấu hình định mức.</div></td></tr>`;
 
       return `<section class="card">
+        ${app.temp.stdSavedMsg ? `<div class="pill pill-ok" style="margin-bottom:12px;font-size:14px;padding:10px 18px;display:inline-flex">Đã lưu định mức thành công!</div>` : ""}
         <div class="tools" style="justify-content:space-between">
           <div>
             <h2 style="margin:0">Khai báo định mức</h2>
@@ -1067,9 +1072,10 @@ async function save(){
                   <col class="std-col-code">
                   <col class="std-col-unit">
                   <col class="std-col-amount">
+                  <col class="std-col-note">
                   <col class="std-col-action">
                 </colgroup>
-                <thead><tr><th>#</th><th>TenVatTu</th><th>MaVatTu</th><th>DonViTinh</th><th>DinhMucTieuHao</th><th>Xóa</th></tr></thead>
+                <thead><tr><th>#</th><th>TenVatTu</th><th>MaVatTu</th><th>DonViTinh</th><th>DinhMucTieuHao</th><th>Ghi chú</th><th>Xóa</th></tr></thead>
                 <tbody>${rowsHtml}</tbody>
               </table>
             </div>
@@ -1234,7 +1240,7 @@ async function save(){
       if(key === "machines") return visibleMachines().map(x=>({MaMay:x.code,TenMay:x.name,Nhom:x.group}));
       if(key === "tests") return visibleTests().map(x=>({MaXetNghiem:x.code,TenXetNghiem:x.name,Nhom:x.group,Gia:x.price,May:(x.machines||[]).join(", ")}));
       if(key === "materials") return app.db.materials.map(x=>({MaVatTu:x.code,TenVatTu:x.name,DonViTinh:x.unit,TenThuongMai:x.trade,NhaCungCap:x.supplier,NuocSX:x.country,HangSX:x.brand,QuyCachDongGoi:x.pack,GiaTien:x.price}));
-      if(key === "standards") return visibleStandards().map(x=>({MaMayXN:x.machineCode,TenMayXN:machine(x.machineCode)?.name||"",MaXetNghiem:x.testCode,TenXetNghiem:test(x.testCode)?.name||"",MaVatTu:x.materialCode,TenVatTu:material(x.materialCode)?.name||"",DonViTinh:x.unit,DinhMucTieuHao:x.amount}));
+      if(key === "standards") return visibleStandards().map(x=>({MaMayXN:x.machineCode,TenMayXN:machine(x.machineCode)?.name||"",MaXetNghiem:x.testCode,TenXetNghiem:test(x.testCode)?.name||"",MaVatTu:x.materialCode,TenVatTu:material(x.materialCode)?.name||"",DonViTinh:x.unit,DinhMucTieuHao:x.amount,GhiChu:x.note||""}));
       return [];
     }
 
@@ -1250,7 +1256,7 @@ async function save(){
         rows.forEach(r => upsertByCode(app.db.materials, {code:r.MaVatTu||r.code||"",name:r.TenVatTu||r.name||"",unit:r.DonViTinh||r.unit||"",trade:r.TenThuongMai||r.trade||"",supplier:r.NhaCungCap||r.supplier||"",country:r.NuocSX||r.country||"",brand:r.HangSX||r.brand||"",pack:r.QuyCachDongGoi||r.pack||"",price:Number(r.GiaTien||r.price||0)}, "v"));
       }
       if(key === "standards"){
-        rows.forEach(r => upsertStandard({machineCode:r.MaMayXN||"",testCode:r.MaXetNghiem||"",materialCode:r.MaVatTu||"",unit:r.DonViTinh||"",amount:Number(r.DinhMucTieuHao||0)}));
+        rows.forEach(r => upsertStandard({machineCode:r.MaMayXN||"",testCode:r.MaXetNghiem||"",materialCode:r.MaVatTu||"",unit:r.DonViTinh||"",amount:Number(r.DinhMucTieuHao||0),note:String(r.GhiChu||"")}));
       }
       save();
       mount();
@@ -1282,6 +1288,7 @@ async function save(){
         const u = account(fd.get("u"));
         if(!u || u.p !== fd.get("p")) return alert("Invalid login");
         app.user = u;
+        try { sessionStorage.setItem('lab-user', JSON.stringify({u:u.u,role:u.role,label:u.label})); } catch(e) {}
         mount();
       };
 
@@ -1290,7 +1297,7 @@ async function save(){
       document.querySelectorAll("[data-report]").forEach(b => b.onclick = () => { app.report = b.dataset.report; mount(); });
 
       const logout = document.getElementById("logout");
-      if(logout) logout.onclick = () => { app.user = null; clearCharts(); mount(); };
+      if(logout) logout.onclick = () => { app.user = null; try { sessionStorage.removeItem('lab-user'); } catch(e) {} clearCharts(); mount(); };
 
       const reset = document.getElementById("resetDb");
       if(reset) reset.onclick = () => {
@@ -1615,6 +1622,10 @@ async function save(){
           }
         }
 
+        if(field === "note"){
+          row.note = String(i.value||"");
+        }
+
         setStdEditorRows(rows, cfg.machineCode, cfg.testCode);
         mount();
       });
@@ -1677,14 +1688,16 @@ async function save(){
           if(amount===0) continue;
           if(seen.has(found.code)) return alert(`Trung MaVatTu ${found.code} trong cung mot cau hinh.`);
           seen.add(found.code);
-          rows.push({materialCode:found.code, unit:String(r.unit||found.unit||"").trim(), amount});
+          rows.push({materialCode:found.code, unit:String(r.unit||found.unit||"").trim(), amount, note:String(r.note||"").trim()});
         }
 
         app.db.standards = app.db.standards.filter(x => !(x.machineCode===machineCode && x.testCode===testCode));
-        rows.forEach(r => app.db.standards.unshift({id:id("s"),machineCode,testCode,materialCode:r.materialCode,unit:r.unit,amount:r.amount}));
-        setStdEditorRows(rows.length ? rows.map(r=>stdDraftRow({materialCode:r.materialCode,unit:r.unit,amount:r.amount})) : [stdDraftRow()], machineCode, testCode);
+        rows.forEach(r => app.db.standards.unshift({id:id("s"),machineCode,testCode,materialCode:r.materialCode,unit:r.unit,amount:r.amount,note:r.note||""}));
+        setStdEditorRows(rows.length ? rows.map(r=>stdDraftRow({materialCode:r.materialCode,unit:r.unit,amount:r.amount,note:r.note})) : [stdDraftRow()], machineCode, testCode);
+        app.temp.stdSavedMsg = true;
         save();
         mount();
+        setTimeout(() => { app.temp.stdSavedMsg = false; mount(); }, 2000);
       };
 
       const cf = document.getElementById("consumptionForm");
@@ -1867,10 +1880,14 @@ async function save(){
     }
 
   (async () => {
-  await load();
-  render();
-})();
+    await load();
+    try {
+      const saved = sessionStorage.getItem('lab-user');
+      if(saved) app.user = JSON.parse(saved);
+    } catch(e) {}
     mount();
+  })();
   </script>
 </body>
 </html>
+
