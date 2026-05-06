@@ -47,6 +47,8 @@ const supabaseClient = supabase.createClient(
 
     const app = {
       db: null,
+      dbVersion: 0,
+      syncStatus: "online",
       user: null,
       view: "dashboard",
       catalog: "machines",
@@ -158,30 +160,69 @@ const supabaseClient = supabase.createClient(
 async function load(){
   const { data, error } = await supabaseClient
     .from('lab_data')
-    .select('payload')
+    .select('payload, version')
     .eq('id', 1)
     .single();
 
-  if (error) {
+  if (error && error.code !== 'PGRST116') {
     console.error('LOAD ERROR:', error);
+    alert("Lỗi tải dữ liệu online. App sẽ mở bằng dữ liệu tạm, KHÔNG ghi đè dữ liệu thật.");
+    app.db = seed();
+    app.syncStatus = "offline_temp";
+    return; // KHÔNG gọi save()
   }
 
   if (data && data.payload) {
     app.db = data.payload;
-  } else {
+    app.dbVersion = data.version ?? 1;
+    app.syncStatus = "online";
+    return;
+  }
+
+  // Không có data, không có error → lần đầu dùng
+  if (confirm("Chưa có dữ liệu. Khởi tạo dữ liệu mẫu?")) {
     app.db = seed();
     await save();
+  } else {
+    app.db = seed(); // mở được app, KHÔNG save
   }
 }
 
 async function save(){
+  if (app.syncStatus === "offline_temp") return false;
+
+  app.syncStatus = "saving";
+  mount();
+
+  // Kiểm tra version conflict trước khi ghi
+  const { data: cur, error: verErr } = await supabaseClient
+    .from('lab_data')
+    .select('version')
+    .eq('id', 1)
+    .single();
+
+  if (!verErr && cur) {
+    const serverVersion = cur.version ?? 1;
+    if (serverVersion !== app.dbVersion) {
+      app.syncStatus = "conflict";
+      alert("Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trước khi lưu.");
+      return false;
+    }
+  }
+
+  const nextVersion = app.dbVersion + 1;
   const { error } = await supabaseClient
     .from('lab_data')
-    .upsert({ id: 1, payload: app.db });
+    .upsert({ id: 1, payload: app.db, version: nextVersion });
 
   if (error) {
     console.error('SAVE ERROR:', error);
+    return false;
   }
+
+  app.dbVersion = nextVersion;
+  app.syncStatus = "online";
+  return true;
 }
     function userGroup(){ return app.user?.role === "admin" ? null : app.user?.u; }
     function account(u){ return USERS.find(x => x.u.toLowerCase() === String(u||"").trim().toLowerCase()); }
@@ -656,6 +697,32 @@ async function save(){
       a.click();
     }
 
+    function templateRows(key){
+      if(key==="machines") return [{MaMay:"M-XX01",TenMay:"Tên máy",Nhom:"HS"}];
+      if(key==="tests") return [{MaXetNghiem:"XN-XX",TenXetNghiem:"Tên xét nghiệm",Nhom:"HS",Gia:25000,May:"M-XX01"}];
+      if(key==="materials") return [{MaVatTu:"VT-XX",TenVatTu:"Tên vật tư",DonViTinh:"ml",TenThuongMai:"Trade name",NhaCungCap:"Supplier",NuocSX:"VN",HangSX:"Brand",QuyCachDongGoi:"500 ml/chai",GiaTien:50000}];
+      if(key==="standards") return [{MaMayXN:"M-XX01",TenMayXN:"Tên máy",MaXetNghiem:"XN-XX",TenXetNghiem:"Tên xét nghiệm",MaVatTu:"VT-XX",TenVatTu:"Tên vật tư",DonViTinh:"ml",DinhMucTieuHao:0.8,GhiChu:""}];
+      return [];
+    }
+
+    function downloadTemplate(key){
+      const rows = templateRows(key);
+      if(!rows.length) return;
+      if(window.XLSX){
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb,ws,"Template");
+        XLSX.writeFile(wb,`${key}_template.xlsx`);
+        return;
+      }
+      const keys = Object.keys(rows[0]);
+      const csv = [keys.join(","), ...rows.map(r=>keys.map(k=>JSON.stringify(r[k]??"")).join(","))].join("\n");
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+      a.download = `${key}_template.csv`;
+      a.click();
+    }
+
     function parseFile(file, done){
       const reader = new FileReader();
       reader.onload = e => {
@@ -887,17 +954,31 @@ async function save(){
       return `<div class="login"><div class="login-card"><div class="hero"><div class="badges"><span class="badge">LAB Standard Hub</span><span class="badge">One file demo</span></div><h1>Lab cost and inventory cockpit.</h1><p>Login, catalog CRUD, editable standards, stock by lot, consumption calculation, reports and Excel import/export are bundled into one standalone HTML file.</p></div><form class="form" id="loginForm"><div><h2 style="margin:0 0 8px">Login</h2><div class="muted">Demo accounts: admin/admin123, HS/123, vi sinh/123, SHPT/123, GPB/123, HH/123.</div></div><div class="field"><label>Username</label><input class="input" name="u" placeholder="admin or HS"></div><div class="field"><label>Password</label><input class="input" type="password" name="p"></div><button class="btn btn-primary">Enter system</button></form></div></div>`;
     }
 
+    function syncBadgeHtml(){
+      const cfg = {
+        online:       {style:"background:rgba(52,211,153,.28);border-color:rgba(52,211,153,.5)",  dot:"#34d399", label:"Dữ liệu online"},
+        saving:       {style:"background:rgba(148,163,184,.28);border-color:rgba(148,163,184,.5)", dot:"#94a3b8", label:"Đang lưu..."},
+        conflict:     {style:"background:rgba(251,146,60,.32);border-color:rgba(251,146,60,.55)",  dot:"#fb923c", label:"Có dữ liệu mới, cần reload"},
+        offline_temp: {style:"background:rgba(239,68,68,.28);border-color:rgba(239,68,68,.5)",    dot:"#ef4444", label:"Dữ liệu tạm - không lưu online"},
+      };
+      const c = cfg[app.syncStatus] || cfg.online;
+      return `<span class="badge" style="${c.style}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c.dot};margin-right:6px;vertical-align:middle"></span>${c.label}</span>`;
+    }
+
     function appView(){
       const d = dashboardData();
       return `<div class="wrap">
         <section class="top">
           <div class="hero-app">
-            <div class="badges"><span class="badge">User: ${esc(app.user.u)}</span><span class="badge">Role: ${esc(app.user.label)}</span><span class="badge">Storage: localStorage</span></div>
+            <div class="badges"><span class="badge">User: ${esc(app.user.u)}</span><span class="badge">Role: ${esc(app.user.label)}</span>${syncBadgeHtml()}</div>
             <h1>Manage standards, consumption and stock from one browser file.</h1>
             <p>The app supports role-based demo accounts, KPI dashboard, machine/test/material catalogs, editable consumption standards, stock lots with expiry, history and 4 report tabs.</p>
             <div class="stats"><div class="stat"><small>Total tests</small><b>${num(d.tests)}</b></div><div class="stat"><small>Total cost</small><b>${money(d.cost)}</b></div><div class="stat"><small>Stock alerts</small><b>${num(d.alerts)}</b></div></div>
           </div>
-          <aside class="side"><h3 style="margin-top:0">Session</h3><div class="muted">Admin sees all data. Group accounts are scoped to their own test group.</div><div class="log" style="margin-top:14px"><div class="log-item"><b>Current user</b><div class="muted">${esc(app.user.u)} - ${esc(app.user.label)}</div></div><div class="log-item"><b>Visible scope</b><div class="muted">${app.user.role==="admin"?"All groups":"Only "+esc(app.user.u)}</div></div></div><div class="tools" style="margin-top:16px"><button class="btn btn-ghost" id="resetDb">Reload seed</button><button class="btn btn-ghost" id="backupJson">Backup JSON</button><label class="btn btn-ghost">Restore JSON<input hidden type="file" accept=".json,application/json" id="restoreJsonFile"></label><button class="btn btn-danger" id="logout">Logout</button></div></aside>
+          <aside class="side"><h3 style="margin-top:0">Session</h3><div class="muted">Admin sees all data. Group accounts are scoped to their own test group.</div><div class="log" style="margin-top:14px"><div class="log-item"><b>Current user</b><div class="muted">${esc(app.user.u)} - ${esc(app.user.label)}</div></div><div class="log-item"><b>Visible scope</b><div class="muted">${app.user.role==="admin"?"All groups":"Only "+esc(app.user.u)}</div></div></div><div class="tools" style="margin-top:16px">${app.user.role==="admin"?`<button class="btn btn-ghost" id="resetDb">Reload seed</button>`:""}
+<button class="btn btn-ghost" id="backupJson">Backup JSON</button>
+${app.user.role==="admin"?`<label class="btn btn-ghost">Restore JSON<input hidden type="file" accept=".json,application/json" id="restoreJsonFile"></label>`:""}
+<button class="btn btn-danger" id="logout">Logout</button></div></aside>
         </section>
         <section class="layout"><aside class="nav">${NAV.map(([k,v])=>`<button data-nav="${k}" class="${app.view===k?"active":""}">${v}</button>`).join("")}</aside><main class="content">${renderView()}</main></section>
       </div>`;
@@ -930,7 +1011,7 @@ async function save(){
       rows = sortRows(rows, "machines", (r,k)=>({code:r.code,name:r.name,group:r.group}[k]));
       const allIds = rows.map(x=>x.id);
       const allChecked = allIds.length>0 && allIds.every(id=>isSelected("machines",id));
-      return `<div class="grid2"><form class="card" id="machineForm"><h3 style="margin-top:0">${edit?"Edit machine":"Machine"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='machines' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="machines">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="machines"></label></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search machine" data-search="machines" value="${esc(app.temp.search.machines)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMachines">Delete selected (${selectedCount("machines")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaMay, TenMay, Nhom.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="machines" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="code">Code${sortIndicator("machines","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="name">Name${sortIndicator("machines","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="group">Group${sortIndicator("machines","group")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="machines" data-id="${x.id}" ${isSelected("machines",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td><div class="tools"><button class="btn btn-ghost" data-edit="machines" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="machines" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="5"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+      return `<div class="grid2"><form class="card" id="machineForm"><h3 style="margin-top:0">${edit?"Edit machine":"Machine"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='machines' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="machines">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="machines"></label><button class="btn btn-ghost" type="button" data-template="machines">Tải file mẫu</button></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search machine" data-search="machines" value="${esc(app.temp.search.machines)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMachines">Delete selected (${selectedCount("machines")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaMay, TenMay, Nhom.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="machines" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="code">Code${sortIndicator("machines","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="name">Name${sortIndicator("machines","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="machines" data-key="group">Group${sortIndicator("machines","group")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="machines" data-id="${x.id}" ${isSelected("machines",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td><div class="tools"><button class="btn btn-ghost" data-edit="machines" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="machines" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="5"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
     }
 
     function testsTab(){
@@ -942,7 +1023,7 @@ async function save(){
       rows = sortRows(rows, "tests", (r,k)=>({code:r.code,name:r.name,group:r.group,price:r.price,machines:(r.machines||[]).join(",")}[k]));
       const allIds = rows.map(x=>x.id);
       const allChecked = allIds.length>0 && allIds.every(id=>isSelected("tests",id));
-      return `<div class="grid2"><form class="card" id="testForm"><h3 style="margin-top:0">${edit?"Edit test":"Test"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div><div class="field"><label>Price</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div><div class="field" style="grid-column:1/-1"><label>Machines comma separated</label><input class="input" name="machines" value="${esc((edit?.machines||[]).join(", "))}"></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='tests' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="tests">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="tests"></label></div></form><div class="card"><div class="field-grid"><div class="field"><label>Search</label><input class="input" placeholder="Search test" data-search="tests" value="${esc(app.temp.search.tests)}"></div><div class="field"><label>Group filter</label><select class="input" data-filter="testsGroup"><option value="all">All groups</option>${groups.map(g=>`<option value="${esc(g)}" ${app.temp.filters.testsGroup===g?"selected":""}>${esc(g)}</option>`).join("")}</select></div></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelTests">Delete selected (${selectedCount("tests")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaXetNghiem, TenXetNghiem, Nhom, Gia, May.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="tests" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="code">Code${sortIndicator("tests","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="name">Name${sortIndicator("tests","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="group">Group${sortIndicator("tests","group")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="price">Price${sortIndicator("tests","price")}</button></th><th>Machines</th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="tests" data-id="${x.id}" ${isSelected("tests",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td>${money(x.price)}</td><td>${esc((x.machines||[]).join(", "))}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="tests" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="tests" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="7"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+      return `<div class="grid2"><form class="card" id="testForm"><h3 style="margin-top:0">${edit?"Edit test":"Test"}</h3><div class="field-grid"><div class="field"><label>Code</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>Name</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>Group</label><input class="input" name="group" value="${esc(edit?.group||"")}" required></div><div class="field"><label>Price</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div><div class="field" style="grid-column:1/-1"><label>Machines comma separated</label><input class="input" name="machines" value="${esc((edit?.machines||[]).join(", "))}"></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='tests' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="tests">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="tests"></label><button class="btn btn-ghost" type="button" data-template="tests">Tải file mẫu</button></div></form><div class="card"><div class="field-grid"><div class="field"><label>Search</label><input class="input" placeholder="Search test" data-search="tests" value="${esc(app.temp.search.tests)}"></div><div class="field"><label>Group filter</label><select class="input" data-filter="testsGroup"><option value="all">All groups</option>${groups.map(g=>`<option value="${esc(g)}" ${app.temp.filters.testsGroup===g?"selected":""}>${esc(g)}</option>`).join("")}</select></div></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelTests">Delete selected (${selectedCount("tests")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaXetNghiem, TenXetNghiem, Nhom, Gia, May.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="tests" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="code">Code${sortIndicator("tests","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="name">Name${sortIndicator("tests","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="group">Group${sortIndicator("tests","group")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="tests" data-key="price">Price${sortIndicator("tests","price")}</button></th><th>Machines</th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="tests" data-id="${x.id}" ${isSelected("tests",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td><span class="pill pill-info">${esc(x.group)}</span></td><td>${money(x.price)}</td><td>${esc((x.machines||[]).join(", "))}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="tests" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="tests" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="7"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
     }
 
     function materialsTab(){
@@ -951,7 +1032,7 @@ async function save(){
       rows = sortRows(rows, "materials", (r,k)=>({code:r.code,name:r.name,unit:r.unit,trade:r.trade,supplier:r.supplier,price:r.price}[k]));
       const allIds = rows.map(x=>x.id);
       const allChecked = allIds.length>0 && allIds.every(id=>isSelected("materials",id));
-      return `<div class="grid2"><form class="card" id="materialForm"><h3 style="margin-top:0">${edit?"Edit material":"Material"}</h3><div class="field-grid"><div class="field"><label>MaVatTu</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>TenVatTu</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>DonViTinh</label><input class="input" name="unit" value="${esc(edit?.unit||"")}" required></div><div class="field"><label>TenThuongMai</label><input class="input" name="trade" value="${esc(edit?.trade||"")}"></div><div class="field"><label>NhaCungCap</label><input class="input" name="supplier" value="${esc(edit?.supplier||"")}"></div><div class="field"><label>NuocSX</label><input class="input" name="country" value="${esc(edit?.country||"")}"></div><div class="field"><label>HangSX</label><input class="input" name="brand" value="${esc(edit?.brand||"")}"></div><div class="field"><label>QuyCachDongGoi</label><input class="input" name="pack" value="${esc(edit?.pack||"")}"></div><div class="field"><label>GiaTien</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='materials' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="materials">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="materials"></label></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search material" data-search="materials" value="${esc(app.temp.search.materials)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMaterials">Delete selected (${selectedCount("materials")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaVatTu, TenVatTu, DonViTinh, TenThuongMai, NhaCungCap, NuocSX, HangSX, QuyCachDongGoi, GiaTien.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="materials" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="code">MaVatTu${sortIndicator("materials","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="name">TenVatTu${sortIndicator("materials","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="unit">DonViTinh${sortIndicator("materials","unit")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="trade">TenThuongMai${sortIndicator("materials","trade")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="supplier">NhaCungCap${sortIndicator("materials","supplier")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="price">GiaTien${sortIndicator("materials","price")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="materials" data-id="${x.id}" ${isSelected("materials",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td>${esc(x.unit)}</td><td>${esc(x.trade||"")}</td><td>${esc(x.supplier||"")}</td><td>${money(x.price)}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="materials" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="materials" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="8"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
+      return `<div class="grid2"><form class="card" id="materialForm"><h3 style="margin-top:0">${edit?"Edit material":"Material"}</h3><div class="field-grid"><div class="field"><label>MaVatTu</label><input class="input" name="code" value="${esc(edit?.code||"")}" required></div><div class="field"><label>TenVatTu</label><input class="input" name="name" value="${esc(edit?.name||"")}" required></div><div class="field"><label>DonViTinh</label><input class="input" name="unit" value="${esc(edit?.unit||"")}" required></div><div class="field"><label>TenThuongMai</label><input class="input" name="trade" value="${esc(edit?.trade||"")}"></div><div class="field"><label>NhaCungCap</label><input class="input" name="supplier" value="${esc(edit?.supplier||"")}"></div><div class="field"><label>NuocSX</label><input class="input" name="country" value="${esc(edit?.country||"")}"></div><div class="field"><label>HangSX</label><input class="input" name="brand" value="${esc(edit?.brand||"")}"></div><div class="field"><label>QuyCachDongGoi</label><input class="input" name="pack" value="${esc(edit?.pack||"")}"></div><div class="field"><label>GiaTien</label><input class="input" type="number" name="price" value="${esc(edit?.price??"")}" required></div></div><div class="tools" style="justify-content:flex-end;margin-top:14px"><button class="btn btn-primary">${edit?"Update":"Save"}</button>${edit?"<button class='btn btn-ghost' data-clear-edit='materials' type='button'>Cancel edit</button>":""}<button class="btn btn-ghost" type="button" data-export="materials">Export Excel</button><label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="materials"></label><button class="btn btn-ghost" type="button" data-template="materials">Tải file mẫu</button></div></form><div class="card"><div class="field"><label>Search</label><input class="input" placeholder="Search material" data-search="materials" value="${esc(app.temp.search.materials)}"></div><div class="tools" style="margin-top:12px"><button class="btn btn-danger" type="button" id="bulkDelMaterials">Delete selected (${selectedCount("materials")})</button></div><div class="muted" style="margin-top:12px">Import columns: MaVatTu, TenVatTu, DonViTinh, TenThuongMai, NhaCungCap, NuocSX, HangSX, QuyCachDongGoi, GiaTien.</div></div></div><div class="table-wrap"><table class="table"><thead><tr><th><input type="checkbox" data-check-all="materials" ${allChecked?"checked":""}></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="code">MaVatTu${sortIndicator("materials","code")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="name">TenVatTu${sortIndicator("materials","name")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="unit">DonViTinh${sortIndicator("materials","unit")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="trade">TenThuongMai${sortIndicator("materials","trade")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="supplier">NhaCungCap${sortIndicator("materials","supplier")}</button></th><th><button class="btn btn-ghost" type="button" data-sort="materials" data-key="price">GiaTien${sortIndicator("materials","price")}</button></th><th>Action</th></tr></thead><tbody>${rows.map(x=>`<tr><td><input type="checkbox" data-check-row="materials" data-id="${x.id}" ${isSelected("materials",x.id)?"checked":""}></td><td>${esc(x.code)}</td><td>${esc(x.name)}</td><td>${esc(x.unit)}</td><td>${esc(x.trade||"")}</td><td>${esc(x.supplier||"")}</td><td>${money(x.price)}</td><td><div class="tools"><button class="btn btn-ghost" data-edit="materials" data-id="${x.id}">Edit</button><button class="btn btn-danger" data-del="materials" data-id="${x.id}">Delete</button></div></td></tr>`).join("")||`<tr><td colspan="8"><div class="empty">Empty</div></td></tr>`}</tbody></table></div>`;
     }
 
     function standardsView(){
@@ -998,6 +1079,7 @@ async function save(){
           <div class="tools">
             <button class="btn btn-ghost" data-export="standards" type="button">Export Excel</button>
             <label class="btn btn-ghost">Import Excel<input hidden type="file" accept=".xlsx,.xls" data-import="standards"></label>
+            <button class="btn btn-ghost" type="button" data-template="standards">Tải file mẫu</button>
           </div>
         </div>
 
@@ -1244,7 +1326,7 @@ async function save(){
       return [];
     }
 
-    function importPack(key, rows){
+    async function importPack(key, rows){
       if(!rows.length) return alert("No rows");
       if(key === "machines"){
         rows.forEach(r => upsertByCode(app.db.machines, {code:r.MaMay||r.code||"",name:r.TenMay||r.name||"",group:r.Nhom||r.group||""}, "m"));
@@ -1258,7 +1340,7 @@ async function save(){
       if(key === "standards"){
         rows.forEach(r => upsertStandard({machineCode:r.MaMayXN||"",testCode:r.MaXetNghiem||"",materialCode:r.MaVatTu||"",unit:r.DonViTinh||"",amount:Number(r.DinhMucTieuHao||0),note:String(r.GhiChu||"")}));
       }
-      save();
+      await save();
       mount();
     }
 
@@ -1300,12 +1382,14 @@ async function save(){
       if(logout) logout.onclick = () => { app.user = null; try { sessionStorage.removeItem('lab-user'); } catch(e) {} clearCharts(); mount(); };
 
       const reset = document.getElementById("resetDb");
-      if(reset) reset.onclick = () => {
+      if(reset) reset.onclick = async () => {
+        if(app.syncStatus === "offline_temp") return alert("Không thể thực hiện khi đang dùng dữ liệu tạm.");
+        if(app.user?.role !== "admin") return alert("Bạn không có quyền reset dữ liệu.");
         if(!confirm("Reload seed data?")) return;
         app.db = seed();
         app.temp.editing = {machines:null,tests:null,materials:null};
         app.temp.selected = {machines:new Set(),tests:new Set(),materials:new Set(),standards:new Set(),inventory:new Set(),txns:new Set(),history:new Set()};
-        save();
+        await save();
         mount();
       };
 
@@ -1314,22 +1398,34 @@ async function save(){
 
       const restore = document.getElementById("restoreJsonFile");
       if(restore) restore.onchange = () => {
+        if(app.syncStatus === "offline_temp") {
+          alert("Không thể restore khi đang dùng dữ liệu tạm.");
+          restore.value = "";
+          return;
+        }
+        if(app.user?.role !== "admin") {
+          alert("Bạn không có quyền thực hiện thao tác này.");
+          restore.value = "";
+          return;
+        }
         const file = restore.files && restore.files[0];
         if(!file) return;
         const reader = new FileReader();
-        reader.onload = ev => {
+        reader.onload = async ev => {
           try{
             const parsed = JSON.parse(String(ev.target.result||"{}"));
             const checked = validateBackupPayload(parsed);
             if(!checked.ok) return alert(checked.error);
-            if(!confirm("Restore JSON se ghi de du lieu hien tai. Tiep tuc?")) return;
+            if(!confirm("Bạn chắc chắn muốn restore?")) return;
+            if(!confirm("Thao tác này sẽ ghi đè toàn bộ dữ liệu hiện tại. Tiếp tục?")) return;
             app.db = clone(checked.data);
             app.temp.editing = {machines:null,tests:null,materials:null};
             app.temp.selected = {machines:new Set(),tests:new Set(),materials:new Set(),standards:new Set(),inventory:new Set(),txns:new Set(),history:new Set()};
-            save();
+            await save();
             mount();
           }catch(err){
-            alert("Khong doc duoc JSON backup.");
+            console.error("RESTORE ERROR:", err);
+            alert("Không đọc được file JSON backup.");
           }finally{
             restore.value = "";
           }
@@ -1390,7 +1486,7 @@ async function save(){
       });
 
       const bulkDelMachines = document.getElementById("bulkDelMachines");
-      if(bulkDelMachines) bulkDelMachines.onclick = () => {
+      if(bulkDelMachines) bulkDelMachines.onclick = async () => {
         const ids = Array.from(selectSet("machines"));
         if(!ids.length) return alert("Chua chon dong nao.");
         const rows = ids.map(id=>app.db.machines.find(x=>x.id===id)).filter(Boolean);
@@ -1402,12 +1498,12 @@ async function save(){
         rows.forEach(r=>cascadeDeleteCatalog("machines", r));
         app.db.machines = removeByIds(app.db.machines, rows.map(r=>r.id));
         clearSelection("machines");
-        save();
+        await save();
         mount();
       };
 
       const bulkDelTests = document.getElementById("bulkDelTests");
-      if(bulkDelTests) bulkDelTests.onclick = () => {
+      if(bulkDelTests) bulkDelTests.onclick = async () => {
         const ids = Array.from(selectSet("tests"));
         if(!ids.length) return alert("Chua chon dong nao.");
         const rows = ids.map(id=>app.db.tests.find(x=>x.id===id)).filter(Boolean);
@@ -1419,12 +1515,12 @@ async function save(){
         rows.forEach(r=>cascadeDeleteCatalog("tests", r));
         app.db.tests = removeByIds(app.db.tests, rows.map(r=>r.id));
         clearSelection("tests");
-        save();
+        await save();
         mount();
       };
 
       const bulkDelMaterials = document.getElementById("bulkDelMaterials");
-      if(bulkDelMaterials) bulkDelMaterials.onclick = () => {
+      if(bulkDelMaterials) bulkDelMaterials.onclick = async () => {
         const ids = Array.from(selectSet("materials"));
         if(!ids.length) return alert("Chua chon dong nao.");
         const rows = ids.map(id=>app.db.materials.find(x=>x.id===id)).filter(Boolean);
@@ -1436,7 +1532,7 @@ async function save(){
         rows.forEach(r=>cascadeDeleteCatalog("materials", r));
         app.db.materials = removeByIds(app.db.materials, rows.map(r=>r.id));
         clearSelection("materials");
-        save();
+        await save();
         mount();
       };
 
@@ -1451,7 +1547,7 @@ async function save(){
       });
 
       const mf = document.getElementById("machineForm");
-      if(mf) mf.onsubmit = e => {
+      if(mf) mf.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(mf);
         const editId = app.temp.editing.machines;
@@ -1466,12 +1562,12 @@ async function save(){
           app.db.machines.unshift({id:id("m"),...payload});
         }
         resetEdit("machines");
-        save();
+        await save();
         mount();
       };
 
       const tf = document.getElementById("testForm");
-      if(tf) tf.onsubmit = e => {
+      if(tf) tf.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(tf);
         const editId = app.temp.editing.tests;
@@ -1493,12 +1589,12 @@ async function save(){
           app.db.tests.unshift({id:id("t"),code,name,group,price,machines});
         }
         resetEdit("tests");
-        save();
+        await save();
         mount();
       };
 
       const vf = document.getElementById("materialForm");
-      if(vf) vf.onsubmit = e => {
+      if(vf) vf.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(vf);
         const editId = app.temp.editing.materials;
@@ -1524,11 +1620,11 @@ async function save(){
           app.db.materials.unshift({id:id("v"),...payload});
         }
         resetEdit("materials");
-        save();
+        await save();
         mount();
       };
 
-      document.querySelectorAll("[data-del]").forEach(b => b.onclick = () => {
+      document.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
         const map = {machines:"machines",tests:"tests",materials:"materials",standards:"standards"};
         const key = map[b.dataset.del];
         const row = app.db[key].find(x=>x.id===b.dataset.id);
@@ -1543,7 +1639,7 @@ async function save(){
         }
         app.db[key] = app.db[key].filter(x=>x.id!==b.dataset.id);
         if(app.temp.editing[key] === b.dataset.id) resetEdit(key);
-        save();
+        await save();
         mount();
       });
 
@@ -1580,7 +1676,7 @@ async function save(){
         mount();
       });
 
-      document.querySelectorAll("[data-std-delete-pair]").forEach(b => b.onclick = () => {
+      document.querySelectorAll("[data-std-delete-pair]").forEach(b => b.onclick = async () => {
         const [machineCode,testCode] = String(b.dataset.stdDeletePair||"").split("||");
         if(!machineCode || !testCode) return;
         const count = app.db.standards.filter(x=>x.machineCode===machineCode && x.testCode===testCode).length;
@@ -1590,7 +1686,7 @@ async function save(){
         if(app.temp.filters.stdCfgMachine===machineCode && app.temp.filters.stdCfgTest===testCode){
           setStdEditorRows([stdDraftRow()], machineCode, testCode);
         }
-        save();
+        await save();
         mount();
       });
 
@@ -1666,7 +1762,7 @@ async function save(){
       };
 
       const saveStdConfig = document.getElementById("saveStdConfig");
-      if(saveStdConfig) saveStdConfig.onclick = () => {
+      if(saveStdConfig) saveStdConfig.onclick = async () => {
         const machineCode = String(app.temp.filters.stdCfgMachine||"").trim();
         const testCode = String(app.temp.filters.stdCfgTest||"").trim();
         if(!machine(machineCode)) return alert("MaMayXN khong hop le");
@@ -1695,7 +1791,7 @@ async function save(){
         rows.forEach(r => app.db.standards.unshift({id:id("s"),machineCode,testCode,materialCode:r.materialCode,unit:r.unit,amount:r.amount,note:r.note||""}));
         setStdEditorRows(rows.length ? rows.map(r=>stdDraftRow({materialCode:r.materialCode,unit:r.unit,amount:r.amount,note:r.note})) : [stdDraftRow()], machineCode, testCode);
         app.temp.stdSavedMsg = true;
-        save();
+        await save();
         mount();
         setTimeout(() => { app.temp.stdSavedMsg = false; mount(); }, 2000);
       };
@@ -1709,7 +1805,7 @@ async function save(){
         document.getElementById("calcPreview").innerHTML = window.latestCalc.html;
       };
 
-      if(cf) cf.onsubmit = e => {
+      if(cf) cf.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(cf);
         const qty = Number(fd.get("qty")||0);
@@ -1721,7 +1817,7 @@ async function save(){
         const t = test(fd.get("testCode"));
         app.db.history.unshift({id:id("h"),date:String(fd.get("date")),testCode:String(fd.get("testCode")),qty,machineCode:String(fd.get("machineCode")),group:t?.group||"",totalCost:calc.total,actor:app.user.u});
         window.latestCalc = calc;
-        save();
+        await save();
         mount();
       };
 
@@ -1732,7 +1828,7 @@ async function save(){
       };
 
       const lotForm = document.getElementById("lotForm");
-      if(lotForm) lotForm.onsubmit = e => {
+      if(lotForm) lotForm.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(lotForm);
         const qty = Number(fd.get("qty")||0);
@@ -1741,12 +1837,12 @@ async function save(){
         if(!lot.lotNo || !lot.unit) return alert("Lot and unit are required");
         app.db.lots.unshift(lot);
         app.db.txns.unshift({id:id("x"),type:"IN",date:lot.receivedDate,materialCode:lot.materialCode,lotNo:lot.lotNo,qty:lot.qty,note:"Nhap kho",actor:app.user.u});
-        save();
+        await save();
         mount();
       };
 
       const txnForm = document.getElementById("txnForm");
-      if(txnForm) txnForm.onsubmit = e => {
+      if(txnForm) txnForm.onsubmit = async e => {
         e.preventDefault();
         const fd = new FormData(txnForm);
         const type = String(fd.get("type"));
@@ -1767,12 +1863,18 @@ async function save(){
 
         lot.qty = Number((Number(lot.qty||0) + (type === "IN" ? qty : -qty)).toFixed(4));
         app.db.txns.unshift({id:id("x"),type,date:String(fd.get("date")),materialCode,lotNo,qty,note:String(fd.get("note")||""),actor:app.user.u});
-        save();
+        await save();
         mount();
       };
 
       document.querySelectorAll("[data-export]").forEach(b => b.onclick = () => exportRows(`${b.dataset.export}.xlsx`, exportPack(b.dataset.export)));
+      document.querySelectorAll("[data-template]").forEach(b => b.onclick = () => downloadTemplate(b.dataset.template));
       document.querySelectorAll("[data-import]").forEach(i => i.onchange = () => {
+        if(app.syncStatus === "offline_temp") {
+          alert("Không thể import khi đang dùng dữ liệu tạm.");
+          i.value = "";
+          return;
+        }
         const file = i.files && i.files[0];
         if(!file) return;
         parseFile(file, rows => {
