@@ -224,14 +224,90 @@ async function save(){
   app.syncStatus = "online";
   return true;
 }
-    function userGroup(){ return app.user?.role === "admin" ? null : app.user?.u; }
+    const GROUP_ALIAS = {
+      HS:   ["HS","Hóa sinh","Hoá sinh","Hoa sinh","Hoa Sinh","Hóa Sinh","hoa sinh","hóa sinh","HOA SINH","HÓA SINH"],
+      HH:   ["HH","Huyết học","Huyet hoc","huyết học","huyet hoc","HUYET HOC","HUYẾT HỌC"],
+      VS:   ["VS","Vi sinh","vi sinh","VI SINH","Vi Sinh"],
+      SHPT: ["SHPT","Sinh học phân tử","Sinh hoc phan tu","sinh học phân tử","SINH HOC PHAN TU"],
+      GPB:  ["GPB","Giải phẫu bệnh","Giai phau benh","giải phẫu bệnh","GIAI PHAU BENH"]
+    };
+    function stripDiacritics(s){ return String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,""); }
+    function normalizeGroup(v){ return stripDiacritics(String(v||"").trim()).toUpperCase(); }
+    const GROUP_SUBSTR = {
+      HS:   ["SINH HOA","SINH HOC","MIEN DICH"],
+      HH:   ["HUYET HOC"],
+      VS:   ["VI SINH"],
+      SHPT: ["SINH HOC PHAN TU"],
+      GPB:  ["GIAI PHAU BENH"]
+    };
+    function canonicalGroup(v){
+      const n = normalizeGroup(v);
+      for(const [key, aliases] of Object.entries(GROUP_ALIAS)){
+        if(key === n) return key;
+        if(aliases.some(a => normalizeGroup(a) === n)) return key;
+      }
+      // substring match (sau khi đã strip dấu + uppercase)
+      for(const [key, substrs] of Object.entries(GROUP_SUBSTR)){
+        if(substrs.some(s => n.includes(s))) return key;
+      }
+      return n;
+    }
+    function sameGroup(a, b){
+      const ca = canonicalGroup(a);
+      const cb = canonicalGroup(b);
+      console.log("[sameGroup]", JSON.stringify(a), "->", ca, "|", JSON.stringify(b), "->", cb);
+      return !!ca && !!cb && ca === cb;
+    }
+    function userGroup(){ return app.user?.role === "admin" ? null : (app.user?.label || app.user?.u); }
     function account(u){ return USERS.find(x => x.u.toLowerCase() === String(u||"").trim().toLowerCase()); }
     function material(c){ return app.db.materials.find(x => x.code === c); }
     function machine(c){ return app.db.machines.find(x => x.code === c); }
     function test(c){ return app.db.tests.find(x => x.code === c); }
-    function visibleTests(){ return app.user.role === "admin" ? app.db.tests : app.db.tests.filter(x => normalize(x.group) === normalize(userGroup())); }
-    function visibleMachines(){ return app.user.role === "admin" ? app.db.machines : app.db.machines.filter(x => normalize(x.group) === normalize(userGroup())); }
-    function visibleHistory(){ return app.user.role === "admin" ? app.db.history : app.db.history.filter(x => normalize(x.group) === normalize(userGroup())); }
+    function visibleTests(){
+      console.log("[visibleTests] sample test", app.db.tests[0]);
+      if(app.user?.role === "admin"){
+        return app.db.tests;
+      }
+      const ug = userGroup();
+      const out = app.db.tests.filter(t => {
+        const g =
+          t.group ||
+          t.Group ||
+          t.department ||
+          t.Department ||
+          t.khoa ||
+          t.Khoa ||
+          t.boPhan ||
+          t.BoPhan ||
+          "";
+
+        const ok = sameGroup(g, ug);
+
+        if(ok){
+          console.log("[MATCH]", t.code, t.name, g);
+        }
+
+        return ok;
+      });
+      console.log("[visibleTests RESULT]", out.length);
+      return out;
+    }
+    function visibleMachines(){
+      if(app.user.role === "admin") return app.db.machines;
+      const g = userGroup();
+      return app.db.machines.filter(x => {
+        if(!x.group) { console.warn("[visibleMachines] missing group:", x); return false; }
+        return sameGroup(x.group, g);
+      });
+    }
+    function visibleHistory(){
+      if(app.user.role === "admin") return app.db.history;
+      const g = userGroup();
+      return app.db.history.filter(x => {
+        if(!x.group) { console.warn("[visibleHistory] missing group:", x); return false; }
+        return sameGroup(x.group, g);
+      });
+    }
     function visibleStandards(){ const set = new Set(visibleTests().map(x => x.code)); return app.db.standards.filter(x => set.has(x.testCode)); }
 
     function stockSummary(){
@@ -835,13 +911,28 @@ async function save(){
       return `${t.code} - ${t.name}${pairHasStandards(machineCode, t.code) ? " ★" : ""}`;
     }
 
+    function machineMatch(t, machineCode){
+      if(!machineCode || !t) return false;
+      const code = String(machineCode).trim();
+      // support các field name khác nhau trong DB
+      const raw = t.machines ?? t.machineCode ?? t.machineCodes ?? t.analyzer;
+      if(raw == null) return false;
+      if(Array.isArray(raw)) return raw.some(v => String(v).trim() === code);
+      // string hoặc number (kể cả "15,16" hoặc "M-HS01,M-HS02")
+      return String(raw).split(",").map(v => v.trim()).includes(code);
+    }
+
     function testsForMachine(machineCode){
       const tests = visibleTests();
+      console.log("[testsForMachine] selectedMachine", machineCode);
+      console.log("[testsForMachine] visibleTests", tests);
       if(!machineCode) return tests;
-      const mapped = tests.filter(t => (t.machines||[]).includes(machineCode));
+      const mapped = tests.filter(t => machineMatch(t, machineCode));
       const fallbackCodes = Array.from(new Set(app.db.standards.filter(s=>s.machineCode===machineCode).map(s=>s.testCode)));
       const fallback = tests.filter(t => fallbackCodes.includes(t.code));
-      return Array.from(new Map(mapped.concat(fallback).map(t=>[t.code,t])).values());
+      const result = Array.from(new Map(mapped.concat(fallback).map(t=>[t.code,t])).values());
+      console.log("[testsForMachine] matched", result);
+      return result;
     }
 
     function resolveMachinePick(value, machines){
